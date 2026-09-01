@@ -388,6 +388,9 @@ html, body {
   border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit;
 }
 .insignia-admin { align-self: flex-start; background: #fbe4e6; color: var(--rojo-apagado); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.fila-carga-masiva { font-size: 12.5px; padding: 5px 2px; border-bottom: 1px solid #f0eaf8; color: #502d6e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lista-admin-carga-masiva { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 4px 8px; }
+#lista-admin-carga-masiva:empty { display: none; }
 
 /* --- reproductor persistente (siempre visible arriba de las pestañas) --- */
 #reproductor-actual { display: flex; flex-direction: column; gap: 6px; flex: none; }
@@ -407,6 +410,8 @@ html, body {
 </style>
 </head>
 <body>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 
   <div id="fondo"></div>
   <div class="runas-lateral izq"></div>
@@ -513,7 +518,17 @@ html, body {
           <button id="btn-admin-crear-album" class="secundario">Crear álbum</button>
           <div id="aviso-admin-album" class="aviso-musica"></div>
 
-          <h3>Subir canción</h3>
+          <h3>Subir canciones (detección automática)</h3>
+          <p style="font-size:11.5px; color:#8a7aa0; margin:-4px 0 0;">Elegí uno o varios MP3 — podés seleccionar un álbum entero de una. Gyan lee título, artista, álbum, número de pista y portada de cada archivo solo, agrupa por álbum, crea los álbumes que falten y sube todo.</p>
+          <label>Archivos de audio
+            <input id="admin-carga-masiva-archivos" type="file" accept="audio/*" multiple />
+          </label>
+          <button id="btn-admin-carga-masiva" class="secundario">Subir todo</button>
+          <div id="aviso-admin-carga-masiva" class="aviso-musica"></div>
+          <div id="lista-admin-carga-masiva"></div>
+
+          <h3>Subir una canción a mano</h3>
+          <p style="font-size:11.5px; color:#8a7aa0; margin:-4px 0 0;">Para cuando un archivo no trae etiquetas o querés corregir algo.</p>
           <label>Álbum destino
             <select id="admin-cancion-album"></select>
           </label>
@@ -528,7 +543,6 @@ html, body {
           </label>
           <button id="btn-admin-subir-cancion" class="secundario">Subir canción</button>
           <div id="aviso-admin-cancion" class="aviso-musica"></div>
-          <p style="font-size:11.5px; color:#8a7aa0;">Para cargar muchas canciones de una, usá el script de carga masiva desde tu computadora en vez de este formulario.</p>
         </div>
 
         <!-- ---- cuenta ---- -->
@@ -1937,9 +1951,134 @@ document.getElementById("btn-admin-subir-cancion").addEventListener("click", asy
     document.getElementById("admin-cancion-archivo").value = "";
     document.getElementById("admin-cancion-titulo").value = "";
     document.getElementById("admin-cancion-numero").value = "";
+    cargarAdmin();
   } catch (e) {
     aviso.textContent = e.message;
   }
+});
+
+// ---- carga masiva con lectura automática de etiquetas (ID3/MP4) ----
+function leerEtiquetasArchivo(archivo) {
+  return new Promise((resolve) => {
+    if (typeof jsmediatags === "undefined") { resolve({}); return; }
+    jsmediatags.read(archivo, {
+      onSuccess: (tag) => resolve((tag && tag.tags) || {}),
+      onError: () => resolve({}),
+    });
+  });
+}
+function obtenerDuracionAudio(archivo) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(archivo);
+    const audioTmp = new Audio();
+    audioTmp.preload = "metadata";
+    const terminar = (valor) => { URL.revokeObjectURL(url); resolve(valor); };
+    audioTmp.onloadedmetadata = () => terminar(Math.round(audioTmp.duration) || null);
+    audioTmp.onerror = () => terminar(null);
+    audioTmp.src = url;
+  });
+}
+function extraerNumeroPista(track) {
+  if (!track) return null;
+  const m = /^(\d+)/.exec(String(track));
+  return m ? parseInt(m[1], 10) : null;
+}
+function imagenDesdeEtiquetas(tags) {
+  if (!tags || !tags.picture || !tags.picture.data) return null;
+  try {
+    const bytes = new Uint8Array(tags.picture.data);
+    const tipo = tags.picture.format || "image/jpeg";
+    return new Blob([bytes], { type: tipo });
+  } catch { return null; }
+}
+async function buscarAlbumExistente(titulo, artista) {
+  try {
+    const datos = await apiMusica(`/api/albumes?buscar=${encodeURIComponent(titulo)}&porPagina=50`);
+    const encontrado = (datos.albumes || []).find(
+      (a) => a.titulo.trim().toLowerCase() === titulo.trim().toLowerCase() &&
+             a.artista.trim().toLowerCase() === artista.trim().toLowerCase()
+    );
+    return encontrado ? encontrado.id : null;
+  } catch { return null; }
+}
+
+document.getElementById("btn-admin-carga-masiva").addEventListener("click", async () => {
+  const input = document.getElementById("admin-carga-masiva-archivos");
+  const archivos = Array.from(input.files || []);
+  const aviso = document.getElementById("aviso-admin-carga-masiva");
+  const lista = document.getElementById("lista-admin-carga-masiva");
+  if (archivos.length === 0) { aviso.textContent = "Elegí al menos un archivo."; return; }
+
+  lista.innerHTML = "";
+  aviso.textContent = `Leyendo etiquetas de ${archivos.length} archivo(s)…`;
+
+  const items = [];
+  for (const archivo of archivos) {
+    const tags = await leerEtiquetasArchivo(archivo);
+    const nombreSinExtension = archivo.name.replace(/\.[^.]+$/, "");
+    const titulo = (tags.title && tags.title.trim()) || nombreSinExtension;
+    const artista = (tags.artist && tags.artist.trim()) || "Desconocido";
+    const albumTitulo = (tags.album && tags.album.trim()) || titulo;
+    const numeroPista = extraerNumeroPista(tags.track);
+    const portadaBlob = imagenDesdeEtiquetas(tags);
+    const fila = document.createElement("div");
+    fila.className = "fila-carga-masiva";
+    fila.textContent = `⏳ ${titulo} — ${artista} (${albumTitulo})`;
+    lista.appendChild(fila);
+    items.push({ archivo, titulo, artista, albumTitulo, numeroPista, portadaBlob, fila });
+  }
+
+  const grupos = new Map();
+  for (const item of items) {
+    const clave = `${item.albumTitulo.toLowerCase()}‖${item.artista.toLowerCase()}`;
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave).push(item);
+  }
+
+  let subidas = 0, errores = 0;
+  for (const [, itemsAlbum] of grupos) {
+    const { albumTitulo, artista } = itemsAlbum[0];
+    aviso.textContent = `Preparando álbum "${albumTitulo}"…`;
+    let albumId;
+    try {
+      albumId = await buscarAlbumExistente(albumTitulo, artista);
+      if (!albumId) {
+        const creado = await apiMusica("/api/admin/albumes", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ titulo: albumTitulo, artista, anio: null }),
+        });
+        albumId = creado.id;
+        const conPortada = itemsAlbum.find((i) => i.portadaBlob);
+        if (conPortada) {
+          await apiMusicaBinario(`/api/admin/albumes/${albumId}/portada`, conPortada.portadaBlob, conPortada.portadaBlob.type);
+        }
+      }
+    } catch (e) {
+      itemsAlbum.forEach((i) => { i.fila.textContent = `❌ ${i.titulo}: ${e.message}`; });
+      errores += itemsAlbum.length;
+      continue;
+    }
+
+    for (const item of itemsAlbum) {
+      item.fila.textContent = `⏳ Subiendo: ${item.titulo}…`;
+      try {
+        const duracion = await obtenerDuracionAudio(item.archivo);
+        const parametros = new URLSearchParams({ albumId: String(albumId), titulo: item.titulo });
+        if (item.numeroPista) parametros.set("numeroPista", String(item.numeroPista));
+        if (duracion) parametros.set("duracionSegundos", String(duracion));
+        await apiMusicaBinario(`/api/admin/canciones?${parametros.toString()}`, item.archivo, item.archivo.type || "audio/mpeg");
+        item.fila.textContent = `✅ ${item.titulo}`;
+        subidas++;
+      } catch (e) {
+        item.fila.textContent = `❌ ${item.titulo}: ${e.message}`;
+        errores++;
+      }
+    }
+  }
+
+  aviso.textContent = `Listo: ${subidas} canción(es) subida(s)${errores ? `, ${errores} con error` : ""}.`;
+  input.value = "";
+  cargarAdmin();
 });
 
 // ---- reproductor ----
