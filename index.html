@@ -393,14 +393,41 @@ html, body {
 #lista-admin-carga-masiva:empty { display: none; }
 
 /* --- reproductor persistente (siempre visible arriba de las pestañas) --- */
-#reproductor-actual { display: flex; flex-direction: column; gap: 6px; flex: none; }
+#reproductor-actual {
+  display: flex; flex-direction: column; gap: 8px; flex: none;
+  background: linear-gradient(150deg, #f3e9fb 0%, #eef6fa 100%);
+  border: 1px solid var(--tarjeta-borde);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.fila-cabecera-reproductor { display: flex; align-items: center; gap: 10px; }
+#portada-reproductor-actual-contenedor {
+  position: relative; width: 46px; height: 46px; flex: none;
+  border-radius: 10px; overflow: hidden; background: #e4d7f2;
+  box-shadow: 0 2px 8px rgba(80, 45, 110, 0.18);
+}
+#portada-reproductor-actual { width: 100%; height: 100%; object-fit: cover; display: block; }
+#portada-reproductor-actual-vacia {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #b4a6cc;
+}
+#info-reproductor-actual { flex: 1; min-width: 0; }
+#btn-favorito-actual { background: none; border: none; font-size: 19px; color: var(--rojo-apagado); padding: 4px; flex: none; }
+#btn-favorito-actual.activo { color: var(--rojo-apagado); }
 #titulo-cancion { font-size: 14px; font-weight: 600; color: var(--morado-oscuro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #subtitulo-cancion { font-size: 11.5px; color: #8a7aa0; margin-top: -4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #barra-progreso, #barra-volumen { width: 100%; accent-color: var(--turquesa); }
 #tiempos-cancion { display: flex; justify-content: space-between; font-size: 11px; color: #8a7aa0; }
-.fila-controles { display: flex; justify-content: center; align-items: center; gap: 22px; margin: 4px 0; }
-.control { border: none; background: transparent; font-size: 22px; color: var(--morado-oscuro); padding: 4px; }
-.control.principal { font-size: 30px; color: var(--turquesa); }
+.fila-controles { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 2px 0; }
+.control { border: none; background: transparent; font-size: 22px; color: var(--morado-oscuro); padding: 4px; border-radius: 50%; transition: background 0.15s, transform 0.1s; }
+.control.principal {
+  font-size: 20px; color: #fff; background: var(--turquesa);
+  width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(60, 170, 170, 0.4);
+}
+.control.principal:active { transform: scale(0.94); }
+.control.chico { font-size: 15px; color: #a695bd; }
+.control.chico.activo { color: var(--turquesa); background: rgba(60, 170, 170, 0.14); }
 #fila-volumen { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 15px; }
 #lienzo-adn {
   width: 100%; height: 64px;
@@ -463,15 +490,26 @@ html, body {
       <div id="contenido-musica" class="oculto">
 
         <div id="reproductor-actual">
-          <div id="titulo-cancion">Sin canción seleccionada</div>
-          <div id="subtitulo-cancion"></div>
+          <div class="fila-cabecera-reproductor">
+            <div id="portada-reproductor-actual-contenedor">
+              <img id="portada-reproductor-actual" class="oculto" alt="" />
+              <div id="portada-reproductor-actual-vacia">♪</div>
+            </div>
+            <div id="info-reproductor-actual">
+              <div id="titulo-cancion">Sin canción seleccionada</div>
+              <div id="subtitulo-cancion"></div>
+            </div>
+            <button id="btn-favorito-actual" aria-label="Favorito">♡</button>
+          </div>
           <canvas id="lienzo-adn"></canvas>
           <input id="barra-progreso" type="range" min="0" max="100" value="0" />
           <div id="tiempos-cancion"><span id="tiempo-actual">0:00</span><span id="tiempo-total">0:00</span></div>
           <div class="fila-controles">
+            <button id="btn-aleatorio" class="control chico" aria-label="Orden aleatorio">🔀</button>
             <button id="btn-anterior" class="control">⏮</button>
             <button id="btn-play-pausa" class="control principal">▶</button>
             <button id="btn-siguiente" class="control">⏭</button>
+            <button id="btn-repetir" class="control chico activo" aria-label="Repetir">🔁</button>
           </div>
           <label id="fila-volumen">🔉<input id="barra-volumen" type="range" min="0" max="100" value="70" /></label>
         </div>
@@ -1513,8 +1551,12 @@ const barraVolumen = document.getElementById("barra-volumen");
 let sesionMusica = Almacen.cargar("gyan_musica_sesion", null); // { token, nombreUsuario, esAdmin }
 let modoFormularioMusica = "login";
 let favoritosIds = new Set();
-let colaReproduccion = []; // [{ id, titulo, albumTitulo, artista }]
+let colaReproduccion = []; // [{ id, titulo, albumTitulo, artista, portadaUrl }]
 let indiceColaActual = -1;
+let ordenReproduccion = []; // orden en el que se recorre la cola (normal o mezclado)
+let posicionEnOrden = -1;
+let modoAleatorio = false;
+let modoRepetir = "todo"; // "no" | "todo" | "una"
 let arrastrandoProgreso = false;
 let temporizadorBusquedaAlbumes = null;
 
@@ -1627,9 +1669,14 @@ document.getElementById("btn-musica-salir").addEventListener("click", () => {
   sesionMusica = null;
   Almacen.guardar("gyan_musica_sesion", null);
   colaReproduccion = []; indiceColaActual = -1;
+  ordenReproduccion = []; posicionEnOrden = -1;
   audioEl.pause(); audioEl.removeAttribute("src");
   document.getElementById("titulo-cancion").textContent = "Sin canción seleccionada";
   document.getElementById("subtitulo-cancion").textContent = "";
+  imgPortadaActual.classList.add("oculto");
+  portadaActualVacia.classList.remove("oculto");
+  btnFavoritoActual.textContent = "♡";
+  btnFavoritoActual.classList.remove("activo");
   actualizarVistaSegunSesionMusica();
 });
 
@@ -1695,7 +1742,7 @@ async function abrirAlbum(albumId) {
         <div class="album-titulo">${escaparHtml(album.titulo)}</div>
         <div class="album-artista">${escaparHtml(album.artista)}${album.anio ? " · " + album.anio : ""}</div>
       </div>`;
-    const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista }));
+    const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl }));
     const contenedor = document.getElementById("canciones-album-detalle");
     contenedor.innerHTML = "";
     cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
@@ -1778,7 +1825,7 @@ async function cargarFavoritos() {
       contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no tenés canciones favoritas. Tocá el ♡ en cualquier canción.</div>';
       return;
     }
-    const cola = datos.favoritos.map(f => ({ id: f.id, titulo: f.titulo, albumTitulo: f.album_titulo, artista: f.artista }));
+    const cola = datos.favoritos.map(f => ({ id: f.id, titulo: f.titulo, albumTitulo: f.album_titulo, artista: f.artista, portadaUrl: f.album_id ? `${ajustes.apiMusicaUrl}/api/portada/${f.album_id}` : null }));
     cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
   } catch (e) {
     contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
@@ -2082,11 +2129,39 @@ document.getElementById("btn-admin-carga-masiva").addEventListener("click", asyn
 });
 
 // ---- reproductor ----
+const btnFavoritoActual = document.getElementById("btn-favorito-actual");
+const imgPortadaActual = document.getElementById("portada-reproductor-actual");
+const portadaActualVacia = document.getElementById("portada-reproductor-actual-vacia");
+
+function generarOrden(cantidad, indicePrimero) {
+  const orden = Array.from({ length: cantidad }, (_, i) => i);
+  if (!modoAleatorio) return orden;
+  for (let i = orden.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [orden[i], orden[j]] = [orden[j], orden[i]];
+  }
+  if (indicePrimero != null) {
+    const pos = orden.indexOf(indicePrimero);
+    if (pos > 0) [orden[0], orden[pos]] = [orden[pos], orden[0]];
+  }
+  return orden;
+}
+
 function reproducirDeCola(cola, indice) {
   colaReproduccion = cola;
   indiceColaActual = indice;
+  ordenReproduccion = generarOrden(cola.length, indice);
+  posicionEnOrden = ordenReproduccion.indexOf(indice);
   reproducirIndiceActualDeCola();
 }
+
+function avanzarEnCola(direccion) {
+  if (colaReproduccion.length === 0) return;
+  posicionEnOrden = (posicionEnOrden + direccion + ordenReproduccion.length) % ordenReproduccion.length;
+  indiceColaActual = ordenReproduccion[posicionEnOrden];
+  reproducirIndiceActualDeCola();
+}
+
 function reproducirIndiceActualDeCola() {
   if (indiceColaActual < 0 || indiceColaActual >= colaReproduccion.length) return;
   const cancion = colaReproduccion[indiceColaActual];
@@ -2098,29 +2173,59 @@ function reproducirIndiceActualDeCola() {
   document.querySelectorAll(".fila-cancion").forEach(f => {
     f.classList.toggle("activa", Number(f.dataset.cancionId) === cancion.id);
   });
+  if (cancion.portadaUrl) {
+    imgPortadaActual.src = cancion.portadaUrl;
+    imgPortadaActual.classList.remove("oculto");
+    portadaActualVacia.classList.add("oculto");
+  } else {
+    imgPortadaActual.classList.add("oculto");
+    portadaActualVacia.classList.remove("oculto");
+  }
+  btnFavoritoActual.textContent = favoritosIds.has(cancion.id) ? "♥" : "♡";
+  btnFavoritoActual.classList.toggle("activo", favoritosIds.has(cancion.id));
 }
+
 btnPlayPausa.addEventListener("click", () => {
   if (colaReproduccion.length === 0) return;
-  if (indiceColaActual === -1) { indiceColaActual = 0; reproducirIndiceActualDeCola(); return; }
+  if (indiceColaActual === -1) {
+    posicionEnOrden = 0;
+    indiceColaActual = ordenReproduccion[0] ?? 0;
+    reproducirIndiceActualDeCola();
+    return;
+  }
   if (audioEl.paused) audioEl.play(); else audioEl.pause();
 });
-document.getElementById("btn-siguiente").addEventListener("click", () => {
-  if (colaReproduccion.length === 0) return;
-  indiceColaActual = (indiceColaActual + 1) % colaReproduccion.length;
-  reproducirIndiceActualDeCola();
+document.getElementById("btn-siguiente").addEventListener("click", () => avanzarEnCola(1));
+document.getElementById("btn-anterior").addEventListener("click", () => avanzarEnCola(-1));
+
+document.getElementById("btn-aleatorio").addEventListener("click", () => {
+  modoAleatorio = !modoAleatorio;
+  const btn = document.getElementById("btn-aleatorio");
+  btn.classList.toggle("activo", modoAleatorio);
+  if (colaReproduccion.length > 0) {
+    ordenReproduccion = generarOrden(colaReproduccion.length, indiceColaActual);
+    posicionEnOrden = ordenReproduccion.indexOf(indiceColaActual);
+  }
 });
-document.getElementById("btn-anterior").addEventListener("click", () => {
-  if (colaReproduccion.length === 0) return;
-  indiceColaActual = (indiceColaActual - 1 + colaReproduccion.length) % colaReproduccion.length;
-  reproducirIndiceActualDeCola();
+document.getElementById("btn-repetir").addEventListener("click", () => {
+  modoRepetir = modoRepetir === "no" ? "todo" : modoRepetir === "todo" ? "una" : "no";
+  const btn = document.getElementById("btn-repetir");
+  btn.textContent = modoRepetir === "una" ? "🔂" : "🔁";
+  btn.classList.toggle("activo", modoRepetir !== "no");
 });
+btnFavoritoActual.addEventListener("click", () => {
+  if (indiceColaActual < 0) return;
+  const cancion = colaReproduccion[indiceColaActual];
+  if (cancion) alternarFavorito(cancion.id, btnFavoritoActual);
+});
+
 audioEl.addEventListener("play", () => { btnPlayPausa.textContent = "⏸"; });
 audioEl.addEventListener("pause", () => { btnPlayPausa.textContent = "▶"; });
 audioEl.addEventListener("ended", () => {
-  if (colaReproduccion.length > 0) {
-    indiceColaActual = (indiceColaActual + 1) % colaReproduccion.length;
-    reproducirIndiceActualDeCola();
-  }
+  if (colaReproduccion.length === 0) return;
+  if (modoRepetir === "una") { reproducirIndiceActualDeCola(); return; }
+  if (modoRepetir === "no" && posicionEnOrden >= ordenReproduccion.length - 1) return;
+  avanzarEnCola(1);
 });
 audioEl.addEventListener("timeupdate", () => {
   if (arrastrandoProgreso || !audioEl.duration) return;
