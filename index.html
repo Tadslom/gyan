@@ -240,6 +240,27 @@ html, body {
   font-size: 17px;
 }
 #btn-enviar:active { opacity: 0.8; }
+#btn-mic {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: none;
+  flex: none;
+  background: #efe7f7;
+  color: var(--morado-oscuro);
+  font-size: 17px;
+  transition: background 0.15s, color 0.15s;
+}
+#btn-mic:active { opacity: 0.8; }
+#btn-mic.encendido {
+  background: var(--rojo-apagado);
+  color: #fff;
+  animation: pulso-mic 1.4s ease-in-out infinite;
+}
+@keyframes pulso-mic {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 60, 70, 0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(200, 60, 70, 0); }
+}
+#btn-mic.oculto { display: none; }
 
 /* ================= RUNAS DEL CHAT BASE ================= */
 .runas-lateral {
@@ -835,27 +856,15 @@ html, body {
   <div id="panel-ajustes" class="oculto">
     <div class="tarjeta">
       <h2>Ajustes</h2>
-      <label>API Key de OpenRouter
-        <input id="input-api-key" type="password" placeholder="sk-or-v1-..." />
-      </label>
       <label>Modelo
         <input id="input-modelo" type="text" placeholder="nousresearch/hermes-4-70b" />
-      </label>
-      <label>URL de la API de Música
-        <input id="input-api-musica-url" type="text" placeholder="https://gyan-music-api.tu-cuenta.workers.dev" />
       </label>
       <label class="fila-check">
         <input id="input-voz-activa" type="checkbox" checked />
         Voz activada (Fish Audio)
       </label>
-      <label>API Key de Fish Audio
-        <input id="input-fish-key" type="password" placeholder="sk-fish-..." />
-      </label>
       <label>ID de voz de Fish Audio (reference_id, opcional)
         <input id="input-fish-voz" type="text" placeholder="dejar vacío = voz por defecto" />
-      </label>
-      <label>URL de proxy de voz (opcional — solo si sale "Failed to fetch")
-        <input id="input-fish-proxy" type="text" placeholder="https://tu-proxy.workers.dev" />
       </label>
       <div id="aviso-proxy-voz" class="aviso-proxy oculto">Fish Audio no deja llamarlo directo desde el navegador (bloqueo CORS). Necesitás un proxy — mirá las instrucciones que te pasé para armar uno gratis con Cloudflare Workers y pegá acá la URL que te da.</div>
       <div class="fila-botones">
@@ -905,6 +914,7 @@ html, body {
   </main>
 
   <footer id="barra-entrada">
+    <button id="btn-mic" aria-label="Micrófono">🎙</button>
     <input id="input-texto" type="text" placeholder="Escríbele a Gyan..." autocomplete="off" />
     <button id="btn-enviar" aria-label="Enviar">➤</button>
   </footer>
@@ -966,15 +976,39 @@ let humorBase = Almacen.cargar("gyan_humor", 0.5);
 // La doctrina puede editarse desde Ajustes (con contraseña); arranca con la base original.
 let doctrina = Almacen.cargar("gyan_doctrina", { ...DOCTRINA_BASE });
 
+// ---------------------------------------------------------------------
+// CONFIGURACIÓN PRECARGADA
+// Nota honesta: esto NO es un mecanismo de seguridad real. Cualquiera que
+// abra las herramientas de desarrollador del navegador (F12 → pestaña
+// Network/Console) puede ver estos valores tal cual viajan en las
+// peticiones, sin importar cómo estén codificados aquí. Esta codificación
+// en base64 solo evita que alguien los vea "a simple vista" mirando el
+// código fuente por curiosidad; no protege las claves de un usuario que
+// realmente quiera extraerlas. Si en algún momento se filtran o se usan
+// de forma indebida, hay que rotarlas (generar unas nuevas) desde
+// OpenRouter / Fish Audio / Cloudflare.
+const _cfg = JSON.parse(atob(
+  "eyJhcGlLZXkiOiAic2stb3ItdjEtMTc0ZWU0NmE2YzAwMTYzZjhiMGM0ZmYyZWQ2MjRhNWY0NWRjYTRhYjc4NDBhZWY3NTA2OTA1OGQzZWJlYmY4ZiIsICJmaXNoQXBpS2V5IjogInNrLWZpc2gtbThMWV9xS0pSckJXSFVnZFl5aVFCcDI5UDctMXJIWmV3UUJsZ24ycm9TLWMiLCAiZmlzaFByb3h5IjogImh0dHBzOi8vZ3lhbi5uZW5pdG9zMjAxOC53b3JrZXJzLmRldiIsICJmaXNoVm96IjogIjQ4N2VkOTk4YThiMTRiMWE5MzdlNDVjNDBmNjJlNjI3IiwgImFwaU11c2ljYVVybCI6ICJodHRwczovL2d5YW4tbXVzaWMtYXBpLm5lbml0b3MyMDE4LndvcmtlcnMuZGV2In0="
+));
+
 let ajustes = Almacen.cargar("gyan_ajustes", {
-  apiKey: "",
+  apiKey: _cfg.apiKey,
   modelo: "nousresearch/hermes-4-70b",
   vozActiva: true,
-  fishApiKey: "",
-  fishVoz: "",
-  fishProxy: "",
-  apiMusicaUrl: ""
+  fishApiKey: _cfg.fishApiKey,
+  fishVoz: _cfg.fishVoz,
+  fishProxy: _cfg.fishProxy,
+  apiMusicaUrl: _cfg.apiMusicaUrl
 });
+// Si ya existía un "gyan_ajustes" guardado de una sesión anterior con
+// campos vacíos (por ejemplo, de antes de precargar las claves), se
+// completan con los valores precargados sin pisar lo que el usuario
+// haya configurado a mano.
+if (!ajustes.apiKey) ajustes.apiKey = _cfg.apiKey;
+if (!ajustes.fishApiKey) ajustes.fishApiKey = _cfg.fishApiKey;
+if (!ajustes.fishProxy) ajustes.fishProxy = _cfg.fishProxy;
+if (!ajustes.fishVoz) ajustes.fishVoz = _cfg.fishVoz;
+if (!ajustes.apiMusicaUrl) ajustes.apiMusicaUrl = _cfg.apiMusicaUrl;
 
 function guardarEstado() {
   Almacen.guardar("gyan_cerebro", cerebro);
@@ -1465,13 +1499,9 @@ function llenarCamposDoctrina() {
 }
 
 function abrirAjustes() {
-  document.getElementById("input-api-key").value = ajustes.apiKey;
   document.getElementById("input-modelo").value = ajustes.modelo;
   document.getElementById("input-voz-activa").checked = ajustes.vozActiva;
-  document.getElementById("input-fish-key").value = ajustes.fishApiKey;
   document.getElementById("input-fish-voz").value = ajustes.fishVoz;
-  document.getElementById("input-fish-proxy").value = ajustes.fishProxy;
-  document.getElementById("input-api-musica-url").value = ajustes.apiMusicaUrl;
   // El editor de doctrina se re-bloquea cada vez que se abre Ajustes.
   document.getElementById("input-clave-doctrina").value = "";
   document.getElementById("aviso-clave-doctrina").classList.add("oculto");
@@ -1482,17 +1512,11 @@ function abrirAjustes() {
 document.getElementById("btn-ajustes").addEventListener("click", abrirAjustes);
 document.getElementById("btn-cerrar-ajustes").addEventListener("click", () => panelAjustes.classList.add("oculto"));
 document.getElementById("btn-guardar-ajustes").addEventListener("click", () => {
-  ajustes.apiKey = document.getElementById("input-api-key").value.trim();
   ajustes.modelo = document.getElementById("input-modelo").value.trim() || "nousresearch/hermes-4-70b";
   ajustes.vozActiva = document.getElementById("input-voz-activa").checked;
-  ajustes.fishApiKey = document.getElementById("input-fish-key").value.trim();
   ajustes.fishVoz = document.getElementById("input-fish-voz").value.trim();
-  ajustes.fishProxy = document.getElementById("input-fish-proxy").value.trim().replace(/\/+$/, "");
-  const urlMusicaAnterior = ajustes.apiMusicaUrl;
-  ajustes.apiMusicaUrl = document.getElementById("input-api-musica-url").value.trim().replace(/\/+$/, "");
   Almacen.guardar("gyan_ajustes", ajustes);
   panelAjustes.classList.add("oculto");
-  if (ajustes.apiMusicaUrl !== urlMusicaAnterior) actualizarVistaSegunSesionMusica();
 });
 document.getElementById("btn-borrar-memoria").addEventListener("click", () => {
   if (!confirm("¿Borrar toda la memoria y el historial de Gyan? Esto no se puede deshacer.")) return;
@@ -1545,6 +1569,84 @@ function manejarEnvio() {
 }
 document.getElementById("btn-enviar").addEventListener("click", manejarEnvio);
 inputTexto.addEventListener("keydown", e => { if (e.key === "Enter") manejarEnvio(); });
+
+// ---------------------------------------------------------------------
+// RECONOCIMIENTO DE VOZ (puerto de escuchar_microfono_thread, vía Web
+// Speech API del navegador — no usa el modelo local .pkl de Python,
+// que solo puede correr fuera del navegador). Botón de micrófono con
+// estado encendido/apagado: al encenderlo, Gyan escucha en español y
+// envía automáticamente cada frase que reconoce; al apagarlo, deja de
+// escuchar.
+// ---------------------------------------------------------------------
+const btnMic = document.getElementById("btn-mic");
+const ClaseReconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let micEncendido = false;
+let reconocimientoVoz = null;
+let micPausadoPorHabla = false; // true mientras Gyan está hablando (TTS), para no autoescucharse
+
+if (!ClaseReconocimiento) {
+  // Safari de escritorio / navegadores sin soporte: se oculta el botón
+  // en vez de dejarlo ahí sin funcionar.
+  btnMic.classList.add("oculto");
+} else {
+  reconocimientoVoz = new ClaseReconocimiento();
+  reconocimientoVoz.lang = "es-ES";
+  reconocimientoVoz.continuous = true;
+  reconocimientoVoz.interimResults = false;
+
+  reconocimientoVoz.onresult = (evento) => {
+    const ultimo = evento.results[evento.results.length - 1];
+    if (!ultimo || !ultimo.isFinal) return;
+    const texto = ultimo[0].transcript.trim();
+    if (!texto) return;
+    inputTexto.value = texto;
+    manejarEnvio();
+  };
+
+  reconocimientoVoz.onerror = (evento) => {
+    if (evento.error === "not-allowed" || evento.error === "service-not-allowed") {
+      agregarLinea("sistema", "Gyan no tiene permiso para usar el micrófono. Habilitalo en los ajustes del navegador.");
+      micEncendido = false;
+      btnMic.classList.remove("encendido");
+    }
+    // "no-speech" y errores de red son normales durante escucha continua;
+    // onend se encarga de reintentar si el mic sigue encendido.
+  };
+
+  reconocimientoVoz.onend = () => {
+    // El navegador puede cortar la escucha sola tras un silencio largo;
+    // si el usuario no la apagó, se reinicia.
+    if (micEncendido && !micPausadoPorHabla) {
+      try { reconocimientoVoz.start(); } catch { /* ya estaba iniciado */ }
+    }
+  };
+
+  btnMic.addEventListener("click", () => {
+    micEncendido = !micEncendido;
+    btnMic.classList.toggle("encendido", micEncendido);
+    if (micEncendido) {
+      try { reconocimientoVoz.start(); } catch { /* ya estaba iniciado */ }
+      agregarLinea("sistema", "🎙 Micrófono encendido. Te escucho.");
+    } else {
+      try { reconocimientoVoz.stop(); } catch {}
+      agregarLinea("sistema", "🎙 Micrófono apagado.");
+    }
+  });
+
+  // Mientras Gyan habla (Fish Audio), se pausa la escucha para que no
+  // se autoescuche por los parlantes; al terminar, retoma si seguía encendido.
+  audioVoz.addEventListener("play", () => {
+    if (!micEncendido) return;
+    micPausadoPorHabla = true;
+    try { reconocimientoVoz.stop(); } catch {}
+  });
+  audioVoz.addEventListener("ended", () => {
+    if (!micEncendido) return;
+    micPausadoPorHabla = false;
+    try { reconocimientoVoz.start(); } catch {}
+  });
+}
 
 // ---------------------------------------------------------------------
 // GEOMETRÍA FLOTANTE (puerto de dibujar_geometria_flotante)
