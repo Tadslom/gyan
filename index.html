@@ -780,6 +780,10 @@ html, body {
           </div>
           <div id="aviso-admin-editar-album" class="aviso-musica"></div>
           <div id="lista-admin-editar-album"></div>
+
+          <h3 style="color:var(--rojo-apagado);">Zona de peligro</h3>
+          <button id="btn-admin-eliminar-todo" class="peligro">Borrar toda la música</button>
+          <div id="aviso-admin-eliminar-todo" class="aviso-musica"></div>
         </div>
 
         <!-- ---- cuenta ---- -->
@@ -2690,6 +2694,45 @@ document.getElementById("btn-admin-eliminar-album").addEventListener("click", as
   } catch (e) {
     aviso.textContent = e.message;
   }
+});
+
+// ---- admin: borrar toda la música de una sola vez ----
+document.getElementById("btn-admin-eliminar-todo").addEventListener("click", async () => {
+  const aviso = document.getElementById("aviso-admin-eliminar-todo");
+  aviso.textContent = "Buscando álbumes…";
+  let albumes = [];
+  try {
+    const datos = await apiMusica("/api/albumes?porPagina=500");
+    albumes = datos.albumes || [];
+  } catch (e) {
+    aviso.textContent = e.message;
+    return;
+  }
+  if (albumes.length === 0) { aviso.textContent = "No hay ningún álbum cargado."; return; }
+
+  if (!confirm(`Esto va a borrar TODOS los álbumes (${albumes.length}) y TODAS las canciones de la biblioteca. No se puede deshacer. ¿Seguro?`)) return;
+  if (prompt('Esta acción es irreversible. Escribí "BORRAR TODO" para confirmar:') !== "BORRAR TODO") {
+    aviso.textContent = "Cancelado — no se borró nada.";
+    return;
+  }
+
+  let ok = 0, fallidos = 0;
+  for (const album of albumes) {
+    aviso.textContent = `Borrando ${ok + fallidos + 1} de ${albumes.length}: "${album.titulo}"…`;
+    try {
+      await apiMusica(`/api/admin/albumes/${album.id}`, { method: "DELETE" });
+      ok++;
+    } catch {
+      fallidos++;
+    }
+  }
+  cachePorMezclarTodo = null;
+  cancionesAlbumEnEdicion = [];
+  document.getElementById("lista-admin-editar-album").innerHTML = "";
+  cargarAdmin();
+  aviso.textContent = fallidos === 0
+    ? `Listo: se borraron los ${ok} álbumes.`
+    : `Se borraron ${ok} álbumes; ${fallidos} no se pudieron borrar (probá de nuevo con esos).`;
 });
 
 // ---- reproductor ----
