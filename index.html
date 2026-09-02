@@ -1899,7 +1899,6 @@ function iniciarGeometriaFlotante() {
 // LIBRERÍA MUSICAL (catálogo compartido vía Worker + D1 + R2)
 // ---------------------------------------------------------------------
 const audioEl = document.getElementById("audio-elemento");
-audioEl.crossOrigin = "anonymous"; // necesario para el analizador ADN con audio de otro origen
 const panelMusica = document.getElementById("panel-musica");
 const btnPlayPausa = document.getElementById("btn-play-pausa");
 const barraProgreso = document.getElementById("barra-progreso");
@@ -1926,25 +1925,6 @@ function actualizarMediaSession(cancion) {
     ] : [],
   });
 }
-
-// ---- Mantener vivo el AudioContext en segundo plano / pantalla bloqueada ----
-// El visualizador ADN engancha audioEl a un AudioContext (Web Audio API).
-// iOS y Android suelen "suspender" ese AudioContext cuando la pestaña pasa a
-// segundo plano o se bloquea la pantalla, y como el sonido de audioEl queda
-// enrutado exclusivamente a través de ese contexto, si el contexto se
-// suspende la música se corta aunque audioEl siga "reproduciendo" por dentro.
-// Estos listeners intentan reanudarlo apenas hay oportunidad.
-function reanudarAudioContextSiHaceFalta() {
-  if (audioCtxADN && audioCtxADN.state === "suspended" && audioEl && !audioEl.paused) {
-    audioCtxADN.resume().catch(() => {});
-  }
-}
-document.addEventListener("visibilitychange", reanudarAudioContextSiHaceFalta);
-window.addEventListener("focus", reanudarAudioContextSiHaceFalta);
-window.addEventListener("pageshow", reanudarAudioContextSiHaceFalta);
-// Reintento periódico: en apps agregadas a la pantalla de inicio (modo
-// standalone) los eventos de arriba no siempre disparan al desbloquear.
-setInterval(reanudarAudioContextSiHaceFalta, 3000);
 
 let sesionMusica = Almacen.cargar("gyan_musica_sesion", null); // { token, nombreUsuario, esAdmin }
 let modoFormularioMusica = "login";
@@ -2791,7 +2771,6 @@ function avanzarEnCola(direccion) {
 function reproducirIndiceActualDeCola() {
   if (indiceColaActual < 0 || indiceColaActual >= colaReproduccion.length) return;
   const cancion = colaReproduccion[indiceColaActual];
-  inicializarAnalizadorAudio();
   audioEl.src = `${ajustes.apiMusicaUrl}/api/stream/${cancion.id}`;
   audioEl.play().catch(() => {});
   document.getElementById("titulo-cancion").textContent = cancion.titulo;
@@ -3060,29 +3039,18 @@ document.getElementById("btn-cerrar-galeria").addEventListener("click", () => {
 
 // ---------------------------------------------------------------------
 // VISUALIZADOR ADN — mismo diseño que el bloque decorativo de RAM del
-// script original ("BLOQUE RAM CON CÓDIGO ADN"), ahora ligado al audio
-// real de la canción vía Web Audio API en vez de al uso de memoria.
+// script original ("BLOQUE RAM CON CÓDIGO ADN"). Es decorativo (pulso
+// generado, no un análisis real del audio): a propósito NO se engancha
+// audioEl a un AudioContext/Web Audio API, porque hacerlo redirige la
+// salida de sonido exclusivamente a través de ese contexto — y en
+// celular, iOS/Android suspenden ese contexto en cuanto se apaga la
+// pantalla o la app pasa a segundo plano, cortando la música. Dejando
+// audioEl reproducir "solo" (sin Web Audio de por medio), el audio
+// sigue sonando con la pantalla bloqueada.
 // ---------------------------------------------------------------------
 const lienzoADN = document.getElementById("lienzo-adn");
 const ctxADN = lienzoADN.getContext("2d");
-let audioCtxADN = null, analizadorADN = null, datosFrecuenciaADN = null;
 let animandoADN = false;
-
-function inicializarAnalizadorAudio() {
-  if (audioCtxADN) { if (audioCtxADN.state === "suspended") audioCtxADN.resume(); return; }
-  try {
-    audioCtxADN = new (window.AudioContext || window.webkitAudioContext)();
-    analizadorADN = audioCtxADN.createAnalyser();
-    analizadorADN.fftSize = 64;
-    analizadorADN.smoothingTimeConstant = 0.7;
-    datosFrecuenciaADN = new Uint8Array(analizadorADN.frequencyBinCount);
-    const fuente = audioCtxADN.createMediaElementSource(audioEl);
-    fuente.connect(analizadorADN);
-    analizadorADN.connect(audioCtxADN.destination);
-  } catch (e) {
-    console.warn("[ADN] No se pudo iniciar el analizador de audio:", e.message);
-  }
-}
 
 function ajustarLienzoADN() {
   const r = lienzoADN.getBoundingClientRect();
@@ -3100,16 +3068,14 @@ function dibujarADN(t) {
   const espaciado = (ancho - 20) / numNodos;
   const cy = alto / 2;
   const velAdn = t * 2.0;
-
-  if (analizadorADN && audioCtxADN && audioCtxADN.state === "running" && !audioEl.paused) {
-    analizadorADN.getByteFrequencyData(datosFrecuenciaADN);
-  }
+  const sonando = !audioEl.paused;
 
   const nodos = [];
   for (let i = 0; i < numNodos; i++) {
     const px = 10 + i * espaciado;
     const angulo = i * 0.5 - velAdn;
-    const banda = datosFrecuenciaADN ? datosFrecuenciaADN[Math.floor((i / numNodos) * datosFrecuenciaADN.length)] / 255 : 0;
+    // Pulso generado (seno con fases distintas por nodo), no es FFT real.
+    const banda = sonando ? (0.5 + 0.5 * Math.sin(t * 2.6 + i * 1.7)) : 0;
     const actividad = Math.max(0.14, banda); // pulso mínimo en reposo, como el original con ram_usage
     const amplitud = 12 + actividad * (alto * 0.4);
 
