@@ -157,7 +157,7 @@ html, body {
 }
 #titulo-sistema { font-weight: 700; letter-spacing: 0.5px; font-size: 13px; color: var(--turquesa); }
 #estado-animo { margin-left: auto; font-size: 12px; font-style: italic; color: #6a5a80; }
-#btn-ajustes, #btn-musica {
+#btn-ajustes, #btn-musica, #btn-galeria {
   border: none; background: transparent; font-size: 19px; color: var(--morado-oscuro);
   padding: 6px 4px; line-height: 1;
 }
@@ -318,14 +318,14 @@ html, body {
 /* ================= LIBRERÍA MUSICAL ================= */
 #panel-musica { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.45); z-index: 50; display: flex; align-items: flex-end; }
 #panel-musica.oculto { display: none; }
-#panel-musica .tarjeta { max-height: 88vh; }
+#panel-musica .tarjeta { max-height: 88vh; overflow-y: auto; }
 .secundario {
   border: 1px solid var(--turquesa); background: #fff; color: var(--turquesa);
   border-radius: 10px; padding: 10px; font-size: 14px; font-weight: 600;
 }
 
 /* --- pestañas --- */
-#tabs-musica { display: flex; gap: 4px; border-bottom: 1px solid var(--tarjeta-borde); margin-bottom: 6px; overflow-x: auto; }
+#tabs-musica { display: flex; gap: 4px; border-bottom: 1px solid var(--tarjeta-borde); margin-bottom: 6px; overflow-x: auto; flex-shrink: 0; }
 .tab-musica {
   border: none; background: transparent; padding: 8px 10px; font-size: 12.5px; font-weight: 600;
   color: #8a7aa0; white-space: nowrap; border-bottom: 2px solid transparent;
@@ -343,7 +343,7 @@ html, body {
 
 /* --- buscador y grilla de álbumes --- */
 #buscador-albumes { margin-bottom: 2px; }
-.grid-albumes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding-bottom: 4px; }
+.grid-albumes { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; padding-bottom: 4px; }
 .item-album { display: flex; flex-direction: column; gap: 4px; text-align: left; background: none; border: none; padding: 0; }
 .portada-album {
   width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover;
@@ -392,18 +392,156 @@ html, body {
 #lista-admin-carga-masiva { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 4px 8px; }
 #lista-admin-carga-masiva:empty { display: none; }
 
+/* ================= GALERÍA (sala propia, no es un panel genérico) ================= */
+#panel-galeria {
+  position: fixed; inset: 0; z-index: 50;
+  background: radial-gradient(ellipse at 50% -12%, #3d2a55 0%, #1e1130 52%, #120a1c 100%);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#panel-galeria.oculto { display: none; }
+#panel-galeria::before, #panel-galeria::after {
+  content: "";
+  position: fixed; top: 0; bottom: 0; width: 24px;
+  background-image: var(--runa-svg);
+  background-repeat: repeat-y;
+  background-size: 24px 55px;
+  opacity: 0.25;
+  animation: runasBrillo 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+#panel-galeria::before { left: 4px; }
+#panel-galeria::after { right: 4px; transform: scaleX(-1); animation-delay: 1.4s; }
+
+#sala-galeria {
+  position: relative; z-index: 1;
+  max-width: 640px; margin: 0 auto;
+  padding: calc(30px + var(--safe-top)) 30px calc(44px + var(--safe-bottom));
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+#btn-cerrar-galeria {
+  position: fixed; top: calc(10px + var(--safe-top)); right: 14px; z-index: 55;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(20,10,30,0.55); backdrop-filter: blur(6px);
+  color: #f3e9fb; font-size: 15px; line-height: 1;
+}
+
+#cabecera-galeria { text-align: center; padding-bottom: 16px; border-bottom: 1px solid rgba(217,195,138,0.32); }
+#titulo-galeria {
+  font-family: Georgia, serif; font-size: 22px; font-weight: 700;
+  letter-spacing: 4px; text-transform: uppercase; color: #e8d9ae;
+  text-shadow: 0 0 16px rgba(232,217,174,0.35);
+}
+#subtitulo-galeria { margin-top: 5px; font-size: 12px; font-style: italic; color: #b8a6cf; }
+
+#aviso-sesion-galeria { color: #e7b8bf; font-size: 13px; text-align: center; }
+#aviso-sesion-galeria .enlace-musica { color: #9fe0da; }
+
+#contenido-galeria { display: flex; flex-direction: column; gap: 18px; }
+
+#bloque-admin-galeria { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#btn-toggle-admin-galeria {
+  border: 1px dashed rgba(217,195,138,0.55); background: transparent;
+  color: #e8d9ae; font-size: 12.5px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 8px 18px; border-radius: 20px;
+}
+#formulario-admin-galeria {
+  align-self: stretch;
+  background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+}
+#formulario-admin-galeria label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #cbb8e0; }
+#admin-galeria-archivos { width: 100%; color: #e8def2; font-size: 12.5px; }
+#lista-admin-galeria-carga {
+  display: flex; flex-direction: column; gap: 2px; max-height: 200px; overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; padding: 4px 8px;
+}
+#lista-admin-galeria-carga:empty { display: none; }
+#lista-admin-galeria-carga .fila-carga-masiva { color: #e8def2; border-bottom-color: rgba(255,255,255,0.09); }
+
+#galeria-vacia { color: #b8a6cf; }
+
+.grid-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); align-items: start; gap: 38px 20px; padding: 20px 2px 6px; }
+
+/* foto colgada en la sala: marco dorado + halo de luz de reflector + placa */
+.marco-foto {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #ecd7a6, #ae8e56 55%, #8a6c39);
+  border: 1px solid #5f4a26;
+  border-radius: 3px;
+  padding: 7px 7px 22px;
+  text-align: left;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 244, 214, 0.3),
+    0 16px 24px rgba(0, 0, 0, 0.55),
+    0 0 42px rgba(255, 214, 130, 0.12);
+}
+.marco-foto:active { transform: scale(0.97); }
+.marco-foto::before {
+  content: "";
+  position: absolute; top: -28px; left: 50%; width: 130%; height: 44px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(255, 227, 170, 0.3), transparent 72%);
+  pointer-events: none;
+}
+.marco-foto::after {
+  content: "";
+  position: absolute;
+  top: -4px; left: 50%;
+  width: 6px; height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #3d2f18;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+.marco-foto img {
+  width: 100%; height: auto; max-height: 260px; object-fit: contain; display: block;
+  border-radius: 1px; background: #1c0f2b;
+  box-shadow: inset 0 0 0 3px #fffaf0, inset 0 0 0 4px rgba(0,0,0,0.35);
+}
+.marco-foto .pie-foto {
+  position: absolute; left: 6px; right: 6px; bottom: 5px;
+  font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase;
+  color: #3d2f18; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.btn-eliminar-foto {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: rgba(200, 50, 65, 0.92); color: #fff; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* --- visor a pantalla completa --- */
+#visor-foto {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(15, 8, 20, 0.94);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+}
+#visor-foto.oculto { display: none; }
+#visor-foto-img { max-width: 92vw; max-height: 66vh; border-radius: 6px; box-shadow: 0 12px 30px rgba(0,0,0,0.55); }
+#visor-foto-pie { color: #f3e9fb; font-size: 13px; text-align: center; font-style: italic; }
+.fila-botones-visor { display: flex; gap: 12px; }
+.fila-botones-visor button { border: none; border-radius: 20px; padding: 9px 18px; font-size: 13px; font-weight: 600; }
+#btn-cerrar-visor-foto { background: rgba(255,255,255,0.15); color: #f3e9fb; }
+
 /* --- reproductor persistente (siempre visible arriba de las pestañas) --- */
 #reproductor-actual {
-  display: flex; flex-direction: column; gap: 8px; flex: none;
+  display: flex; flex-direction: column; gap: 6px; flex: none;
   background: linear-gradient(150deg, #f3e9fb 0%, #eef6fa 100%);
   border: 1px solid var(--tarjeta-borde);
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 .fila-cabecera-reproductor { display: flex; align-items: center; gap: 10px; }
 #portada-reproductor-actual-contenedor {
-  position: relative; width: 46px; height: 46px; flex: none;
-  border-radius: 10px; overflow: hidden; background: #e4d7f2;
+  position: relative; width: 40px; height: 40px; flex: none;
+  border-radius: 9px; overflow: hidden; background: #e4d7f2;
   box-shadow: 0 2px 8px rgba(80, 45, 110, 0.18);
 }
 #portada-reproductor-actual { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -418,21 +556,51 @@ html, body {
 #subtitulo-cancion { font-size: 11.5px; color: #8a7aa0; margin-top: -4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #barra-progreso, #barra-volumen { width: 100%; accent-color: var(--turquesa); }
 #tiempos-cancion { display: flex; justify-content: space-between; font-size: 11px; color: #8a7aa0; }
-.fila-controles { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 2px 0; }
-.control { border: none; background: transparent; font-size: 22px; color: var(--morado-oscuro); padding: 4px; border-radius: 50%; transition: background 0.15s, transform 0.1s; }
+.fila-controles { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 0; }
+.control { border: none; background: transparent; font-size: 20px; color: var(--morado-oscuro); padding: 3px; border-radius: 50%; transition: background 0.15s, transform 0.1s; }
 .control.principal {
-  font-size: 20px; color: #fff; background: var(--turquesa);
-  width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; background: var(--turquesa);
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 3px 10px rgba(60, 170, 170, 0.4);
 }
 .control.principal:active { transform: scale(0.94); }
-.control.chico { font-size: 15px; color: #a695bd; }
+.control.chico { font-size: 14px; color: #a695bd; }
 .control.chico.activo { color: var(--turquesa); background: rgba(60, 170, 170, 0.14); }
 #fila-volumen { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 15px; }
 #lienzo-adn {
-  width: 100%; height: 64px;
+  width: 100%; height: 44px;
   background: #f5f0fa; border: 1px solid var(--tarjeta-borde); border-radius: 8px;
 }
+
+/* --- cabecera tipo "hero" para la pestaña de canciones aleatorias --- */
+#cabecera-aleatorio {
+  display: flex; align-items: flex-end; gap: 16px;
+  background: linear-gradient(160deg, var(--fondo-1), var(--fondo-2) 85%);
+  padding: 22px 14px 46px; margin: -4px -4px 0; border-radius: 12px 12px 0 0;
+  border: 1px solid var(--tarjeta-borde); border-bottom: none;
+}
+.hero-aleatorio-icono { font-size: 42px; line-height: 1; }
+.hero-aleatorio-etiqueta { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #8a7aa0; text-transform: uppercase; }
+.hero-aleatorio-titulo { font-size: 24px; font-weight: 800; margin: 4px 0 0; color: var(--morado-oscuro); }
+#btn-mezclar-todo {
+  position: relative; align-self: flex-start; margin: -34px 0 4px 14px;
+  width: 52px; height: 52px; border-radius: 50%; border: none;
+  background: var(--turquesa); color: #fff; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 16px rgba(60, 170, 170, 0.45); flex: none;
+}
+#btn-mezclar-todo:active { transform: scale(0.95); }
+
+/* --- grilla de artistas --- */
+.grid-artistas { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; padding-bottom: 4px; }
+.item-artista { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; background: none; border: none; padding: 6px; }
+.avatar-artista {
+  width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--fondo-2), var(--fondo-1)); border: 1px solid var(--tarjeta-borde);
+  font-size: 26px; color: #b4a6cc;
+}
+.artista-nombre { font-size: 12.5px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25; }
+.artista-conteo { font-size: 11px; color: #8a7aa0; }
 
 </style>
 </head>
@@ -462,6 +630,7 @@ html, body {
     <div id="titulo-sistema">SISTEMA DIAR — GYAN</div>
     <div id="estado-animo">Calmo y analítico</div>
     <button id="btn-musica" aria-label="Reproductor">♫</button>
+    <button id="btn-galeria" aria-label="Galería">🖼</button>
     <button id="btn-ajustes" aria-label="Ajustes">⚙</button>
   </header>
 
@@ -515,17 +684,43 @@ html, body {
         </div>
 
         <div id="tabs-musica">
-          <button class="tab-musica activa" data-vista="albumes">Álbumes</button>
+          <button class="tab-musica activa" data-vista="canciones">Canciones</button>
+          <button class="tab-musica" data-vista="albumes">Álbumes</button>
+          <button class="tab-musica" data-vista="artistas">Artistas</button>
+          <button class="tab-musica" data-vista="aleatorio">Aleatorio</button>
           <button class="tab-musica" data-vista="favoritos">Favoritos</button>
           <button class="tab-musica" data-vista="playlists">Playlists</button>
           <button class="tab-musica oculto" id="tab-admin-musica" data-vista="admin">Admin</button>
           <button class="tab-musica" data-vista="cuenta">Cuenta</button>
         </div>
 
+        <!-- ---- canciones sueltas (por defecto) ---- -->
+        <div id="vista-canciones-musica" class="vista-musica activa">
+          <div id="lista-canciones-musica"></div>
+        </div>
+
         <!-- ---- álbumes ---- -->
-        <div id="vista-albumes-musica" class="vista-musica activa">
+        <div id="vista-albumes-musica" class="vista-musica">
           <input id="buscador-albumes" type="text" placeholder="Buscar álbum o artista…" />
           <div id="grid-albumes" class="grid-albumes"></div>
+        </div>
+
+        <!-- ---- artistas ---- -->
+        <div id="vista-artistas-musica" class="vista-musica">
+          <div id="grid-artistas" class="grid-artistas"></div>
+        </div>
+
+        <!-- ---- aleatorio: todas las canciones mezcladas ---- -->
+        <div id="vista-aleatorio-musica" class="vista-musica">
+          <div id="cabecera-aleatorio">
+            <div class="hero-aleatorio-icono">🔀</div>
+            <div>
+              <div class="hero-aleatorio-etiqueta">Mezcla</div>
+              <h2 class="hero-aleatorio-titulo">Toda tu música</h2>
+            </div>
+          </div>
+          <button id="btn-mezclar-todo" aria-label="Mezclar y reproducir todo">▶</button>
+          <div id="lista-aleatorio-musica"></div>
         </div>
 
         <!-- ---- favoritos ---- -->
@@ -540,21 +735,9 @@ html, body {
           <div id="lista-mis-playlists"></div>
         </div>
 
-        <!-- ---- admin: cargar álbum / canción a mano ---- -->
+        <!-- ---- admin: detección automática + editor de álbumes ---- -->
         <div id="vista-admin-musica" class="vista-musica">
           <span class="insignia-admin">MODO ADMIN</span>
-          <h3>Nuevo álbum</h3>
-          <label>Título del álbum
-            <input id="admin-album-titulo" type="text" />
-          </label>
-          <label>Artista
-            <input id="admin-album-artista" type="text" />
-          </label>
-          <label>Año (opcional)
-            <input id="admin-album-anio" type="number" />
-          </label>
-          <button id="btn-admin-crear-album" class="secundario">Crear álbum</button>
-          <div id="aviso-admin-album" class="aviso-musica"></div>
 
           <h3>Subir canciones (detección automática)</h3>
           <p style="font-size:11.5px; color:#8a7aa0; margin:-4px 0 0;">Elegí uno o varios MP3 — podés seleccionar un álbum entero de una. Gyan lee título, artista, álbum, número de pista y portada de cada archivo solo, agrupa por álbum, crea los álbumes que falten y sube todo.</p>
@@ -565,22 +748,17 @@ html, body {
           <div id="aviso-admin-carga-masiva" class="aviso-musica"></div>
           <div id="lista-admin-carga-masiva"></div>
 
-          <h3>Subir una canción a mano</h3>
-          <p style="font-size:11.5px; color:#8a7aa0; margin:-4px 0 0;">Para cuando un archivo no trae etiquetas o querés corregir algo.</p>
-          <label>Álbum destino
-            <select id="admin-cancion-album"></select>
+          <h3>Editar álbum (duplicados y más)</h3>
+          <label>Álbum a editar
+            <select id="admin-editar-album-select"></select>
           </label>
-          <label>Archivo de audio
-            <input id="admin-cancion-archivo" type="file" accept="audio/*" />
-          </label>
-          <label>Título de la canción
-            <input id="admin-cancion-titulo" type="text" />
-          </label>
-          <label>N.º de pista (opcional)
-            <input id="admin-cancion-numero" type="number" />
-          </label>
-          <button id="btn-admin-subir-cancion" class="secundario">Subir canción</button>
-          <div id="aviso-admin-cancion" class="aviso-musica"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btn-admin-cargar-canciones-album" class="secundario">Cargar canciones</button>
+            <button id="btn-admin-quitar-duplicados" class="secundario">Quitar duplicados</button>
+            <button id="btn-admin-eliminar-album" class="secundario" style="color:var(--rojo-apagado);">Eliminar álbum completo</button>
+          </div>
+          <div id="aviso-admin-editar-album" class="aviso-musica"></div>
+          <div id="lista-admin-editar-album"></div>
         </div>
 
         <!-- ---- cuenta ---- -->
@@ -598,6 +776,49 @@ html, body {
       </div>
 
       <button id="btn-cerrar-musica" class="cerrar">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ================= GALERÍA ================= -->
+  <div id="panel-galeria" class="oculto">
+    <button id="btn-cerrar-galeria" aria-label="Cerrar galería">✕</button>
+    <div id="sala-galeria">
+      <div id="cabecera-galeria">
+        <div id="titulo-galeria">Galería</div>
+        <div id="subtitulo-galeria">Momentos guardados en Gyan</div>
+      </div>
+
+      <div id="aviso-sesion-galeria" class="aviso-musica"></div>
+
+      <div id="contenido-galeria" class="oculto">
+
+        <!-- ---- admin: subir fotos (oculto detrás de un toggle) ---- -->
+        <div id="bloque-admin-galeria" class="oculto">
+          <button id="btn-toggle-admin-galeria" type="button">＋ Agregar fotos</button>
+          <div id="formulario-admin-galeria" class="oculto">
+            <span class="insignia-admin">MODO ADMIN</span>
+            <label>Subir fotos
+              <input id="admin-galeria-archivos" type="file" accept="image/*" multiple />
+            </label>
+            <button id="btn-admin-galeria-subir" class="secundario">Subir todo</button>
+            <div id="aviso-admin-galeria" class="aviso-musica"></div>
+            <div id="lista-admin-galeria-carga"></div>
+          </div>
+        </div>
+
+        <div id="grilla-galeria" class="grid-galeria"></div>
+        <div id="galeria-vacia" class="estado-vacio-musica oculto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- visor de foto a pantalla completa ---- -->
+  <div id="visor-foto" class="oculto">
+    <img id="visor-foto-img" src="" alt="" />
+    <div id="visor-foto-pie"></div>
+    <div class="fila-botones-visor">
+      <button id="btn-eliminar-foto-visor" class="peligro oculto">Eliminar foto</button>
+      <button id="btn-cerrar-visor-foto">Cerrar</button>
     </div>
   </div>
 
@@ -688,7 +909,7 @@ html, body {
     <button id="btn-enviar" aria-label="Enviar">➤</button>
   </footer>
 
-  <audio id="audio-elemento"></audio>
+  <audio id="audio-elemento" playsinline preload="metadata"></audio>
   <audio id="audio-voz"></audio>
 
   <script>
@@ -1080,6 +1301,36 @@ function cicloParpadeo() {
   }, 200);
 }
 setInterval(cicloParpadeo, 7000);
+
+// ---------------------------------------------------------------------
+// LA PUPILA SIGUE AL MOUSE (solo en dispositivos con mouse, ej. PC)
+// ---------------------------------------------------------------------
+if (window.matchMedia("(pointer: fine)").matches) {
+  const capaOjo = document.getElementById("capa-ojo");
+  const DESPLAZAMIENTO_MAX_PUPILA = 7; // px que se puede desplazar la pupila dentro del ojo
+  const DISTANCIA_MOUSE_PARA_TOPE = 320; // px de distancia del mouse al ojo para llegar al desplazamiento máximo
+  let objetivoPupilaX = 0, objetivoPupilaY = 0;
+  let actualPupilaX = 0, actualPupilaY = 0;
+
+  document.addEventListener("mousemove", (ev) => {
+    const r = capaOjo.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height * 0.42; // mismo punto que usa centroOjo() como centro visual del ojo
+    const dx = ev.clientX - cx;
+    const dy = ev.clientY - cy;
+    const dist = Math.hypot(dx, dy) || 1;
+    const f = Math.min(1, dist / DISTANCIA_MOUSE_PARA_TOPE);
+    objetivoPupilaX = (dx / dist) * f * DESPLAZAMIENTO_MAX_PUPILA;
+    objetivoPupilaY = (dy / dist) * f * DESPLAZAMIENTO_MAX_PUPILA;
+  });
+
+  (function animarPupila() {
+    actualPupilaX += (objetivoPupilaX - actualPupilaX) * 0.2;
+    actualPupilaY += (objetivoPupilaY - actualPupilaY) * 0.2;
+    imgOjoPupila.style.transform = `translate(${actualPupilaX.toFixed(2)}px, ${actualPupilaY.toFixed(2)}px)`;
+    requestAnimationFrame(animarPupila);
+  })();
+}
 
 // ---------------------------------------------------------------------
 // ANIMACIÓN DE LAS MANOS (gestos, igual que activar_gesto_mano)
@@ -1548,6 +1799,28 @@ const btnPlayPausa = document.getElementById("btn-play-pausa");
 const barraProgreso = document.getElementById("barra-progreso");
 const barraVolumen = document.getElementById("barra-volumen");
 
+// ---- Media Session: controles de bloqueo/notificación y reproducción en segundo plano ----
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.setActionHandler("play", () => audioEl.play().catch(() => {}));
+  navigator.mediaSession.setActionHandler("pause", () => audioEl.pause());
+  navigator.mediaSession.setActionHandler("previoustrack", () => avanzarEnCola(-1));
+  navigator.mediaSession.setActionHandler("nexttrack", () => avanzarEnCola(1));
+  navigator.mediaSession.setActionHandler("seekto", (detalles) => {
+    if (audioEl.duration && detalles.seekTime != null) audioEl.currentTime = detalles.seekTime;
+  });
+}
+function actualizarMediaSession(cancion) {
+  if (!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: cancion.titulo,
+    artist: cancion.artista,
+    album: cancion.albumTitulo,
+    artwork: cancion.portadaUrl ? [
+      { src: cancion.portadaUrl, sizes: "512x512", type: "image/jpeg" },
+    ] : [],
+  });
+}
+
 let sesionMusica = Almacen.cargar("gyan_musica_sesion", null); // { token, nombreUsuario, esAdmin }
 let modoFormularioMusica = "login";
 let favoritosIds = new Set();
@@ -1614,7 +1887,7 @@ function actualizarVistaSegunSesionMusica() {
     document.getElementById("tab-admin-musica").classList.toggle("oculto", !sesionMusica.esAdmin);
     document.getElementById("texto-cuenta-musica").textContent =
       `Sesión iniciada como ${sesionMusica.nombreUsuario}${sesionMusica.esAdmin ? " (administrador)" : ""}.`;
-    cargarIdsFavoritos().finally(() => cambiarTabMusica("albumes"));
+    cargarIdsFavoritos().finally(() => cambiarTabMusica("canciones"));
   } else {
     vistaLogin.classList.remove("oculto");
     contenido.classList.add("oculto");
@@ -1686,7 +1959,10 @@ function cambiarTabMusica(nombre) {
   document.getElementById("contenido-musica").classList.remove("oculto");
   document.querySelectorAll(".tab-musica").forEach(btn => btn.classList.toggle("activa", btn.dataset.vista === nombre));
   document.querySelectorAll(".vista-musica").forEach(v => v.classList.toggle("activa", v.id === `vista-${nombre}-musica`));
+  if (nombre === "canciones") cargarCanciones();
   if (nombre === "albumes") cargarAlbumes(document.getElementById("buscador-albumes").value.trim());
+  if (nombre === "artistas") cargarArtistas();
+  if (nombre === "aleatorio") cargarAleatorio();
   if (nombre === "favoritos") cargarFavoritos();
   if (nombre === "playlists") cargarPlaylists();
   if (nombre === "admin") cargarAdmin();
@@ -1702,6 +1978,44 @@ async function cargarAlbumes(buscar = "") {
     if (buscar) parametros.set("buscar", buscar);
     const datos = await apiMusica("/api/albumes?" + parametros.toString());
     pintarGridAlbumes(datos.albumes);
+  } catch (e) {
+    grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+}
+
+// ---- artistas (agrupados a partir de los álbumes) ----
+async function cargarArtistas() {
+  const grid = document.getElementById("grid-artistas");
+  grid.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  try {
+    const datos = await apiMusica("/api/albumes?porPagina=100");
+    if (datos.albumes.length === 0) {
+      grid.innerHTML = '<div class="estado-vacio-musica">Todavía no hay artistas cargados.</div>';
+      return;
+    }
+    const porArtista = new Map();
+    datos.albumes.forEach(a => {
+      if (!porArtista.has(a.artista)) porArtista.set(a.artista, []);
+      porArtista.get(a.artista).push(a);
+    });
+    const artistas = Array.from(porArtista.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
+    grid.innerHTML = "";
+    artistas.forEach(([nombreArtista, albumesDelArtista]) => {
+      const item = document.createElement("button");
+      item.className = "item-artista";
+      item.innerHTML = `
+        <div class="avatar-artista">🎤</div>
+        <div class="artista-nombre">${escaparHtml(nombreArtista)}</div>
+        <div class="artista-conteo">${albumesDelArtista.length} álbum${albumesDelArtista.length === 1 ? "" : "es"}</div>
+      `;
+      item.addEventListener("click", () => {
+        cambiarTabMusica("albumes");
+        const buscador = document.getElementById("buscador-albumes");
+        buscador.value = nombreArtista;
+        cargarAlbumes(nombreArtista);
+      });
+      grid.appendChild(item);
+    });
   } catch (e) {
     grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
@@ -1832,6 +2146,84 @@ async function cargarFavoritos() {
   }
 }
 
+// ---- canciones sueltas (todas, sin agrupar, orden alfabético) ----
+async function cargarCanciones() {
+  const contenedor = document.getElementById("lista-canciones-musica");
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando tu música…</div>';
+  try {
+    const todas = await obtenerTodasLasCanciones();
+    if (todas.length === 0) {
+      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no hay canciones cargadas.</div>';
+      return;
+    }
+    const cola = todas.slice().sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+    contenedor.innerHTML = "";
+    cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
+  } catch (e) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+}
+
+// ---- aleatorio: todas las canciones de la librería, mezcladas ----
+let cachePorMezclarTodo = null; // cachea la lista de canciones para no re-pedir todos los álbumes cada vez
+async function obtenerTodasLasCanciones() {
+  if (cachePorMezclarTodo) return cachePorMezclarTodo;
+  const datosAlbumes = await apiMusica("/api/albumes?porPagina=300");
+  const todas = [];
+  for (const album of datosAlbumes.albumes) {
+    try {
+      const detalle = await apiMusica(`/api/albumes/${album.id}`);
+      const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
+      detalle.canciones.forEach(c => {
+        todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl });
+      });
+    } catch { /* si un álbum falla, seguimos con el resto */ }
+  }
+  cachePorMezclarTodo = todas;
+  return todas;
+}
+function mezclarArreglo(arreglo) {
+  const copia = arreglo.slice();
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+async function cargarAleatorio() {
+  const contenedor = document.getElementById("lista-aleatorio-musica");
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando toda tu música…</div>';
+  try {
+    const todas = await obtenerTodasLasCanciones();
+    if (todas.length === 0) {
+      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no hay canciones cargadas.</div>';
+      return;
+    }
+    const cola = mezclarArreglo(todas);
+    contenedor.innerHTML = "";
+    cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
+  } catch (e) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+}
+document.getElementById("btn-mezclar-todo").addEventListener("click", async () => {
+  const contenedor = document.getElementById("lista-aleatorio-musica");
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Mezclando…</div>';
+  try {
+    const todas = await obtenerTodasLasCanciones();
+    if (todas.length === 0) {
+      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no hay canciones cargadas.</div>';
+      return;
+    }
+    const cola = mezclarArreglo(todas);
+    contenedor.innerHTML = "";
+    cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
+    reproducirDeCola(cola, 0);
+  } catch (e) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+});
+
 // ---- playlists ----
 async function cargarPlaylists() {
   const contenedor = document.getElementById("lista-mis-playlists");
@@ -1944,13 +2336,13 @@ document.getElementById("btn-cerrar-menu-playlist").addEventListener("click", ()
 });
 
 // ---- admin ----
-async function cargarAdmin() {
-  const select = document.getElementById("admin-cancion-album");
+async function llenarSelectAlbumes(idSelect, textoVacio) {
+  const select = document.getElementById(idSelect);
   select.innerHTML = '<option value="">Cargando álbumes…</option>';
   try {
-    const datos = await apiMusica("/api/albumes?porPagina=100");
+    const datos = await apiMusica("/api/albumes?porPagina=200");
     select.innerHTML = "";
-    if (datos.albumes.length === 0) { select.innerHTML = '<option value="">Creá un álbum primero</option>'; return; }
+    if (datos.albumes.length === 0) { select.innerHTML = `<option value="">${textoVacio}</option>`; return; }
     datos.albumes.forEach(a => {
       const opt = document.createElement("option");
       opt.value = a.id;
@@ -1961,48 +2353,12 @@ async function cargarAdmin() {
     select.innerHTML = `<option value="">${escaparHtml(e.message)}</option>`;
   }
 }
-document.getElementById("btn-admin-crear-album").addEventListener("click", async () => {
-  const titulo = document.getElementById("admin-album-titulo").value.trim();
-  const artista = document.getElementById("admin-album-artista").value.trim();
-  const anio = document.getElementById("admin-album-anio").value.trim();
-  const aviso = document.getElementById("aviso-admin-album");
-  if (!titulo || !artista) { aviso.textContent = "Completá título y artista."; return; }
-  aviso.textContent = "Creando…";
-  try {
-    await apiMusica("/api/admin/albumes", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titulo, artista, anio: anio ? Number(anio) : null })
-    });
-    aviso.textContent = "Álbum creado.";
-    document.getElementById("admin-album-titulo").value = "";
-    document.getElementById("admin-album-artista").value = "";
-    document.getElementById("admin-album-anio").value = "";
-    cargarAdmin();
-  } catch (e) {
-    aviso.textContent = e.message;
-  }
-});
-document.getElementById("btn-admin-subir-cancion").addEventListener("click", async () => {
-  const albumId = document.getElementById("admin-cancion-album").value;
-  const archivo = document.getElementById("admin-cancion-archivo").files[0];
-  const titulo = document.getElementById("admin-cancion-titulo").value.trim();
-  const numero = document.getElementById("admin-cancion-numero").value.trim();
-  const aviso = document.getElementById("aviso-admin-cancion");
-  if (!albumId || !archivo || !titulo) { aviso.textContent = "Elegí álbum, archivo y título."; return; }
-  aviso.textContent = "Subiendo…";
-  try {
-    const parametros = new URLSearchParams({ albumId, titulo });
-    if (numero) parametros.set("numeroPista", numero);
-    await apiMusicaBinario(`/api/admin/canciones?${parametros.toString()}`, archivo, archivo.type || "audio/mpeg");
-    aviso.textContent = "Canción subida.";
-    document.getElementById("admin-cancion-archivo").value = "";
-    document.getElementById("admin-cancion-titulo").value = "";
-    document.getElementById("admin-cancion-numero").value = "";
-    cargarAdmin();
-  } catch (e) {
-    aviso.textContent = e.message;
-  }
-});
+async function cargarAdmin() {
+  llenarSelectAlbumes("admin-editar-album-select", "No hay álbumes todavía");
+  document.getElementById("lista-admin-editar-album").innerHTML = "";
+  document.getElementById("aviso-admin-editar-album").textContent = "";
+  cancionesAlbumEnEdicion = [];
+}
 
 // ---- carga masiva con lectura automática de etiquetas (ID3/MP4) ----
 function leerEtiquetasArchivo(archivo) {
@@ -2125,7 +2481,113 @@ document.getElementById("btn-admin-carga-masiva").addEventListener("click", asyn
 
   aviso.textContent = `Listo: ${subidas} canción(es) subida(s)${errores ? `, ${errores} con error` : ""}.`;
   input.value = "";
+  cachePorMezclarTodo = null;
   cargarAdmin();
+});
+
+// ---- admin: editor de álbum (duplicados, borrar canciones, borrar álbum) ----
+let cancionesAlbumEnEdicion = [];
+function normalizarTitulo(t) {
+  return (t || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function pintarListaEdicionAlbum() {
+  const lista = document.getElementById("lista-admin-editar-album");
+  lista.innerHTML = "";
+  const conteoTitulos = {};
+  cancionesAlbumEnEdicion.forEach(c => {
+    const clave = normalizarTitulo(c.titulo);
+    conteoTitulos[clave] = (conteoTitulos[clave] || 0) + 1;
+  });
+  cancionesAlbumEnEdicion
+    .slice()
+    .sort((a, b) => (a.numero_pista || 0) - (b.numero_pista || 0))
+    .forEach(c => {
+      const esDuplicada = conteoTitulos[normalizarTitulo(c.titulo)] > 1;
+      const fila = document.createElement("div");
+      fila.className = "fila-carga-masiva";
+      fila.style.display = "flex";
+      fila.style.justifyContent = "space-between";
+      fila.style.alignItems = "center";
+      fila.style.gap = "8px";
+      const span = document.createElement("span");
+      span.style.overflow = "hidden";
+      span.style.textOverflow = "ellipsis";
+      span.textContent = `${esDuplicada ? "⚠️ " : ""}${c.titulo}${c.numero_pista ? ` (#${c.numero_pista})` : ""}`;
+      fila.appendChild(span);
+      const btnBorrar = document.createElement("button");
+      btnBorrar.className = "btn-icono";
+      btnBorrar.textContent = "🗑";
+      btnBorrar.addEventListener("click", () => eliminarCancionEnEdicion(c.id));
+      fila.appendChild(btnBorrar);
+      lista.appendChild(fila);
+    });
+}
+async function cargarCancionesAlbumEnEdicion() {
+  const albumId = document.getElementById("admin-editar-album-select").value;
+  const aviso = document.getElementById("aviso-admin-editar-album");
+  if (!albumId) { aviso.textContent = "Elegí un álbum."; return; }
+  aviso.textContent = "Cargando canciones…";
+  document.getElementById("lista-admin-editar-album").innerHTML = "";
+  try {
+    const datos = await apiMusica(`/api/albumes/${albumId}`);
+    cancionesAlbumEnEdicion = datos.canciones;
+    pintarListaEdicionAlbum();
+    aviso.textContent = `${datos.canciones.length} canción(es).`;
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
+}
+async function eliminarCancionEnEdicion(cancionId) {
+  const aviso = document.getElementById("aviso-admin-editar-album");
+  try {
+    await apiMusica(`/api/admin/canciones/${cancionId}`, { method: "DELETE" });
+    cancionesAlbumEnEdicion = cancionesAlbumEnEdicion.filter(c => c.id !== cancionId);
+    pintarListaEdicionAlbum();
+    aviso.textContent = "Canción eliminada.";
+    cachePorMezclarTodo = null;
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
+}
+document.getElementById("btn-admin-cargar-canciones-album").addEventListener("click", cargarCancionesAlbumEnEdicion);
+document.getElementById("btn-admin-quitar-duplicados").addEventListener("click", async () => {
+  const aviso = document.getElementById("aviso-admin-editar-album");
+  if (cancionesAlbumEnEdicion.length === 0) { aviso.textContent = "Primero cargá las canciones del álbum."; return; }
+  const vistos = new Set();
+  const aBorrar = [];
+  cancionesAlbumEnEdicion
+    .slice()
+    .sort((a, b) => (a.numero_pista || 0) - (b.numero_pista || 0))
+    .forEach(c => {
+      const clave = normalizarTitulo(c.titulo);
+      if (vistos.has(clave)) aBorrar.push(c.id); else vistos.add(clave);
+    });
+  if (aBorrar.length === 0) { aviso.textContent = "No se encontraron duplicados."; return; }
+  aviso.textContent = `Borrando ${aBorrar.length} duplicado(s)…`;
+  for (const id of aBorrar) {
+    try { await apiMusica(`/api/admin/canciones/${id}`, { method: "DELETE" }); } catch { /* seguimos con el resto */ }
+  }
+  cancionesAlbumEnEdicion = cancionesAlbumEnEdicion.filter(c => !aBorrar.includes(c.id));
+  pintarListaEdicionAlbum();
+  aviso.textContent = `Listo: se borraron ${aBorrar.length} duplicado(s).`;
+  cachePorMezclarTodo = null;
+});
+document.getElementById("btn-admin-eliminar-album").addEventListener("click", async () => {
+  const albumId = document.getElementById("admin-editar-album-select").value;
+  const aviso = document.getElementById("aviso-admin-editar-album");
+  if (!albumId) { aviso.textContent = "Elegí un álbum."; return; }
+  if (!confirm("¿Seguro que querés borrar este álbum completo, con todas sus canciones? No se puede deshacer.")) return;
+  aviso.textContent = "Eliminando álbum…";
+  try {
+    await apiMusica(`/api/admin/albumes/${albumId}`, { method: "DELETE" });
+    aviso.textContent = "Álbum eliminado.";
+    document.getElementById("lista-admin-editar-album").innerHTML = "";
+    cancionesAlbumEnEdicion = [];
+    cachePorMezclarTodo = null;
+    cargarAdmin();
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
 });
 
 // ---- reproductor ----
@@ -2183,6 +2645,7 @@ function reproducirIndiceActualDeCola() {
   }
   btnFavoritoActual.textContent = favoritosIds.has(cancion.id) ? "♥" : "♡";
   btnFavoritoActual.classList.toggle("activo", favoritosIds.has(cancion.id));
+  actualizarMediaSession(cancion);
 }
 
 btnPlayPausa.addEventListener("click", () => {
@@ -2219,8 +2682,14 @@ btnFavoritoActual.addEventListener("click", () => {
   if (cancion) alternarFavorito(cancion.id, btnFavoritoActual);
 });
 
-audioEl.addEventListener("play", () => { btnPlayPausa.textContent = "⏸"; });
-audioEl.addEventListener("pause", () => { btnPlayPausa.textContent = "▶"; });
+audioEl.addEventListener("play", () => {
+  btnPlayPausa.textContent = "⏸";
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+});
+audioEl.addEventListener("pause", () => {
+  btnPlayPausa.textContent = "▶";
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+});
 audioEl.addEventListener("ended", () => {
   if (colaReproduccion.length === 0) return;
   if (modoRepetir === "una") { reproducirIndiceActualDeCola(); return; }
@@ -2251,6 +2720,169 @@ document.getElementById("btn-musica").addEventListener("click", () => {
 document.getElementById("btn-cerrar-musica").addEventListener("click", () => {
   panelMusica.classList.add("oculto");
   animandoADN = false;
+});
+
+// ---------------------------------------------------------------------
+// GALERÍA (fotos compartidas: el admin sube, todos las ven — mismo
+// backend/login que la música, solo se agregan endpoints de /api/fotos)
+// ---------------------------------------------------------------------
+const panelGaleria = document.getElementById("panel-galeria");
+let fotosGaleria = [];
+
+function actualizarVistaSegunSesionGaleria() {
+  const aviso = document.getElementById("aviso-sesion-galeria");
+  const contenido = document.getElementById("contenido-galeria");
+  const bloqueAdmin = document.getElementById("bloque-admin-galeria");
+  aviso.innerHTML = "";
+
+  if (!ajustes.apiMusicaUrl) {
+    aviso.textContent = "Configurá la URL de la API en ⚙ Ajustes antes de ver la galería.";
+    contenido.classList.add("oculto");
+    return;
+  }
+  if (!sesionMusica || !sesionMusica.token) {
+    aviso.appendChild(document.createTextNode("Iniciá sesión (es la misma cuenta que la música) para ver la galería. "));
+    const btnIrLogin = document.createElement("button");
+    btnIrLogin.type = "button";
+    btnIrLogin.className = "enlace-musica";
+    btnIrLogin.style.display = "inline";
+    btnIrLogin.textContent = "Iniciar sesión";
+    btnIrLogin.addEventListener("click", () => {
+      panelGaleria.classList.add("oculto");
+      panelMusica.classList.remove("oculto");
+      actualizarVistaSegunSesionMusica();
+    });
+    aviso.appendChild(btnIrLogin);
+    contenido.classList.add("oculto");
+    return;
+  }
+
+  contenido.classList.remove("oculto");
+  bloqueAdmin.classList.toggle("oculto", !sesionMusica.esAdmin);
+  document.getElementById("formulario-admin-galeria").classList.add("oculto");
+  cargarFotosGaleria();
+}
+
+async function cargarFotosGaleria() {
+  const vacio = document.getElementById("galeria-vacia");
+  try {
+    const datos = await apiMusica("/api/fotos");
+    fotosGaleria = Array.isArray(datos) ? datos : (datos && datos.fotos) || [];
+    vacio.classList.add("oculto");
+  } catch (e) {
+    fotosGaleria = [];
+    vacio.textContent = e.message;
+    vacio.classList.remove("oculto");
+  }
+  renderizarGrillaGaleria();
+}
+
+function renderizarGrillaGaleria() {
+  const grilla = document.getElementById("grilla-galeria");
+  const vacio = document.getElementById("galeria-vacia");
+  grilla.innerHTML = "";
+  if (!fotosGaleria.length) {
+    if (!vacio.textContent) vacio.textContent = "Todavía no hay fotos en la galería.";
+    vacio.classList.remove("oculto");
+    return;
+  }
+  vacio.classList.add("oculto");
+  fotosGaleria.forEach((foto) => {
+    const marco = document.createElement("div");
+    marco.className = "marco-foto";
+
+    if (sesionMusica && sesionMusica.esAdmin) {
+      const btnBorrar = document.createElement("button");
+      btnBorrar.type = "button";
+      btnBorrar.className = "btn-eliminar-foto";
+      btnBorrar.setAttribute("aria-label", "Eliminar foto");
+      btnBorrar.textContent = "✕";
+      btnBorrar.addEventListener("click", (ev) => { ev.stopPropagation(); eliminarFotoGaleria(foto.id); });
+      marco.appendChild(btnBorrar);
+    }
+
+    const img = document.createElement("img");
+    img.src = `${ajustes.apiMusicaUrl}/api/fotos/${foto.id}/imagen`;
+    img.alt = foto.nombre || "";
+    img.loading = "lazy";
+    marco.appendChild(img);
+
+    if (foto.nombre) {
+      const pie = document.createElement("span");
+      pie.className = "pie-foto";
+      pie.textContent = foto.nombre;
+      marco.appendChild(pie);
+    }
+
+    marco.addEventListener("click", () => abrirVisorFoto(foto));
+    grilla.appendChild(marco);
+  });
+}
+
+function abrirVisorFoto(foto) {
+  document.getElementById("visor-foto-img").src = `${ajustes.apiMusicaUrl}/api/fotos/${foto.id}/imagen`;
+  document.getElementById("visor-foto-img").alt = foto.nombre || "";
+  document.getElementById("visor-foto-pie").textContent = foto.nombre || "";
+  const btnEliminar = document.getElementById("btn-eliminar-foto-visor");
+  if (sesionMusica && sesionMusica.esAdmin) {
+    btnEliminar.classList.remove("oculto");
+    btnEliminar.onclick = () => eliminarFotoGaleria(foto.id);
+  } else {
+    btnEliminar.classList.add("oculto");
+  }
+  document.getElementById("visor-foto").classList.remove("oculto");
+}
+document.getElementById("btn-cerrar-visor-foto").addEventListener("click", () => {
+  document.getElementById("visor-foto").classList.add("oculto");
+});
+
+async function eliminarFotoGaleria(id) {
+  if (!confirm("¿Eliminar esta foto para todos?")) return;
+  try {
+    await apiMusica(`/api/admin/fotos/${id}`, { method: "DELETE" });
+    document.getElementById("visor-foto").classList.add("oculto");
+    await cargarFotosGaleria();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+document.getElementById("btn-admin-galeria-subir").addEventListener("click", async () => {
+  const input = document.getElementById("admin-galeria-archivos");
+  const archivos = Array.from(input.files || []);
+  const aviso = document.getElementById("aviso-admin-galeria");
+  const lista = document.getElementById("lista-admin-galeria-carga");
+  aviso.textContent = "";
+  if (!archivos.length) { aviso.textContent = "Elegí al menos una foto."; return; }
+
+  lista.innerHTML = "";
+  for (const archivo of archivos) {
+    const fila = document.createElement("div");
+    fila.className = "fila-carga-masiva";
+    fila.textContent = `${archivo.name} — subiendo...`;
+    lista.appendChild(fila);
+    try {
+      const nombre = archivo.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+      await apiMusicaBinario(`/api/admin/fotos?nombre=${encodeURIComponent(nombre)}`, archivo, archivo.type || "image/jpeg");
+      fila.textContent = `${archivo.name} — ✔ subida`;
+    } catch (e) {
+      fila.textContent = `${archivo.name} — error: ${e.message}`;
+    }
+  }
+  input.value = "";
+  cargarFotosGaleria();
+});
+
+document.getElementById("btn-toggle-admin-galeria").addEventListener("click", () => {
+  document.getElementById("formulario-admin-galeria").classList.toggle("oculto");
+});
+
+document.getElementById("btn-galeria").addEventListener("click", () => {
+  panelGaleria.classList.remove("oculto");
+  actualizarVistaSegunSesionGaleria();
+});
+document.getElementById("btn-cerrar-galeria").addEventListener("click", () => {
+  panelGaleria.classList.add("oculto");
 });
 
 // ---------------------------------------------------------------------
