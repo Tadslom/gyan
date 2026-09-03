@@ -589,8 +589,9 @@ html, body {
 .control.chico.activo { color: var(--turquesa); background: rgba(60, 170, 170, 0.14); }
 #fila-volumen { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 15px; }
 #lienzo-adn {
-  width: 100%; height: 44px;
-  background: #f5f0fa; border: 1px solid var(--tarjeta-borde); border-radius: 8px;
+  width: 100%; height: 64px;
+  background: linear-gradient(180deg, #f5f0fa, #efe6f7);
+  border: 1px solid var(--tarjeta-borde); border-radius: 8px;
 }
 
 /* --- cabecera tipo "hero" para la pestaña de canciones aleatorias --- */
@@ -924,6 +925,10 @@ html, body {
   </footer>
 
   <audio id="audio-elemento" playsinline preload="metadata"></audio>
+  <!-- Copia "espejo", silenciosa e inaudible, que solo existe para alimentar
+       el analizador de frecuencias real del visualizador ADN sin tocar el
+       audio principal (ver comentario junto al visualizador más abajo). -->
+  <audio id="audio-analisis" playsinline preload="auto" crossorigin="anonymous"></audio>
   <audio id="audio-voz"></audio>
 
   <script>
@@ -2773,6 +2778,7 @@ function reproducirIndiceActualDeCola() {
   const cancion = colaReproduccion[indiceColaActual];
   audioEl.src = `${ajustes.apiMusicaUrl}/api/stream/${cancion.id}`;
   audioEl.play().catch(() => {});
+  sincronizarAnalisis();
   document.getElementById("titulo-cancion").textContent = cancion.titulo;
   document.getElementById("subtitulo-cancion").textContent = `${cancion.artista} · ${cancion.albumTitulo}`;
   document.querySelectorAll(".fila-cancion").forEach(f => {
@@ -2828,12 +2834,15 @@ btnFavoritoActual.addEventListener("click", () => {
 audioEl.addEventListener("play", () => {
   btnPlayPausa.textContent = "⏸";
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+  sincronizarAnalisis();
 });
 audioEl.addEventListener("pause", () => {
   btnPlayPausa.textContent = "▶";
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+  sincronizarAnalisis();
 });
 audioEl.addEventListener("ended", () => {
+  audioAnalisis.pause();
   if (colaReproduccion.length === 0) return;
   if (modoRepetir === "una") { reproducirIndiceActualDeCola(); return; }
   if (modoRepetir === "no" && posicionEnOrden >= ordenReproduccion.length - 1) return;
@@ -3039,18 +3048,100 @@ document.getElementById("btn-cerrar-galeria").addEventListener("click", () => {
 
 // ---------------------------------------------------------------------
 // VISUALIZADOR ADN — mismo diseño que el bloque decorativo de RAM del
-// script original ("BLOQUE RAM CON CÓDIGO ADN"). Es decorativo (pulso
-// generado, no un análisis real del audio): a propósito NO se engancha
-// audioEl a un AudioContext/Web Audio API, porque hacerlo redirige la
-// salida de sonido exclusivamente a través de ese contexto — y en
-// celular, iOS/Android suspenden ese contexto en cuanto se apaga la
-// pantalla o la app pasa a segundo plano, cortando la música. Dejando
-// audioEl reproducir "solo" (sin Web Audio de por medio), el audio
-// sigue sonando con la pantalla bloqueada.
+// script original ("BLOQUE RAM CON CÓDIGO ADN"), reactivo al audio real.
+//
+// Truco para lograrlo sin romper la reproducción en segundo plano: en
+// vez de engancharle un AudioContext al audio PRINCIPAL (audioEl) —lo
+// que redirige su salida exclusivamente a través de Web Audio API, y
+// en celular ese contexto se suspende apenas se apaga la pantalla,
+// cortando el sonido—, se usa una segunda pista "espejo" silenciosa
+// (audio-analisis) que reproduce la misma canción solo para darle
+// datos reales al analizador. audioEl nunca se toca, así que sigue
+// sonando siempre, incluso con la pantalla bloqueada.
+// Esa copia espejo solo se reproduce mientras la pantalla está
+// encendida y visible (si no, nadie ve el visualizador de todos
+// modos), así que no gasta datos extra mientras el celular está
+// bloqueado — pero sí descarga la canción una segunda vez mientras
+// la tenés abierta y mirando, algo a tener en cuenta con datos
+// móviles limitados.
 // ---------------------------------------------------------------------
 const lienzoADN = document.getElementById("lienzo-adn");
 const ctxADN = lienzoADN.getContext("2d");
+const audioAnalisis = document.getElementById("audio-analisis");
 let animandoADN = false;
+
+// --- DEBUG TEMPORAL: quitar estas líneas una vez resuelto el problema ---
+audioAnalisis.addEventListener("error", () => {
+  const err = audioAnalisis.error;
+  const codigos = {1:"ABORTED",2:"NETWORK",3:"DECODE",4:"SRC_NOT_SUPPORTED (típico de CORS)"};
+  console.error("[ADN-DEBUG] audioAnalisis error:", err && codigos[err.code], err);
+});
+audioAnalisis.addEventListener("canplay", () => console.log("[ADN-DEBUG] audioAnalisis: canplay, readyState=", audioAnalisis.readyState));
+audioAnalisis.addEventListener("playing", () => console.log("[ADN-DEBUG] audioAnalisis: ¡PLAYING de verdad!"));
+audioAnalisis.addEventListener("waiting", () => console.log("[ADN-DEBUG] audioAnalisis: waiting (buffering)"));
+audioAnalisis.addEventListener("stalled", () => console.log("[ADN-DEBUG] audioAnalisis: stalled"));
+let ultimoLogFFT = 0;
+// --- FIN DEBUG TEMPORAL ---
+let audioCtxADN = null, analizadorADN = null, datosFrecuenciaADN = null;
+
+function inicializarAnalizadorAudioSiHaceFalta() {
+  if (audioCtxADN) {
+    if (audioCtxADN.state === "suspended") audioCtxADN.resume().catch(() => {});
+    return;
+  }
+  try {
+    audioCtxADN = new (window.AudioContext || window.webkitAudioContext)();
+    analizadorADN = audioCtxADN.createAnalyser();
+    analizadorADN.fftSize = 64;
+    analizadorADN.smoothingTimeConstant = 0.75;
+    datosFrecuenciaADN = new Uint8Array(analizadorADN.frequencyBinCount);
+    const fuente = audioCtxADN.createMediaElementSource(audioAnalisis);
+    fuente.connect(analizadorADN);
+    // A propósito NUNCA se conecta analizadorADN a audioCtxADN.destination:
+    // así esta copia queda muda pase lo que pase, tenga o no la etiqueta "muted".
+    console.log("[ADN-DEBUG] AudioContext y analizador creados OK, estado inicial:", audioCtxADN.state);
+  } catch (e) {
+    console.warn("[ADN] No se pudo iniciar el analizador de audio:", e.message);
+  }
+}
+
+// Mantiene la copia espejo sincronizada con lo que realmente se está
+// escuchando. Se llama al reproducir/pausar/cambiar de canción, al
+// cambiar de pestaña/pantalla, y cada 1s como red de seguridad.
+function sincronizarAnalisis() {
+  try {
+    if (!audioEl.src) { audioAnalisis.pause(); return; }
+    if (document.hidden) {
+      if (!audioAnalisis.paused) audioAnalisis.pause();
+      return;
+    }
+    if (audioAnalisis.src !== audioEl.src) audioAnalisis.src = audioEl.src;
+    inicializarAnalizadorAudioSiHaceFalta();
+    if (audioEl.paused) {
+      if (!audioAnalisis.paused) audioAnalisis.pause();
+      return;
+    }
+    if (audioAnalisis.paused) {
+      // Si todavía no cargó metadata, poner currentTime tira error en
+      // algunos navegadores (Safari) — se reintenta cuando esté lista.
+      if (audioAnalisis.readyState >= 1) {
+        try { audioAnalisis.currentTime = audioEl.currentTime; } catch {}
+      }
+      audioAnalisis.play().catch((e) => console.warn("[ADN-DEBUG] audioAnalisis.play() falló:", e.name, e.message));
+    } else if (Math.abs(audioAnalisis.currentTime - audioEl.currentTime) > 0.35) {
+      try { audioAnalisis.currentTime = audioEl.currentTime; } catch {}
+    }
+  } catch (e) {
+    console.warn("[ADN] Error sincronizando el análisis de audio:", e.message);
+  }
+}
+audioAnalisis.addEventListener("loadedmetadata", () => {
+  if (!audioEl.paused && !document.hidden) {
+    try { audioAnalisis.currentTime = audioEl.currentTime; } catch {}
+  }
+});
+document.addEventListener("visibilitychange", sincronizarAnalisis);
+setInterval(sincronizarAnalisis, 1000);
 
 function ajustarLienzoADN() {
   const r = lienzoADN.getBoundingClientRect();
@@ -3062,55 +3153,141 @@ function ajustarLienzoADN() {
 function dibujarADN(t) {
   const r = lienzoADN.getBoundingClientRect();
   const ancho = r.width, alto = r.height;
+  if (ancho <= 0 || alto <= 0) return; // el panel puede estar recién abriéndose
   ctxADN.clearRect(0, 0, ancho, alto);
 
-  const numNodos = 16;
+  const sonando = !audioEl.paused;
+  const numNodos = 20;
   const espaciado = (ancho - 20) / numNodos;
   const cy = alto / 2;
-  const velAdn = t * 2.0;
-  const sonando = !audioEl.paused;
+  // Con la canción pausada, todo se calma y se ralentiza en vez de congelarse.
+  const vel = sonando ? 2.0 : 0.35;
+  const velAdn = t * vel;
+  // Respiración global: hace que la amplitud suba y baje suavemente en conjunto,
+  // además del pulso individual de cada nodo — le da un aire más orgánico.
+  const respiracion = 0.75 + 0.25 * Math.sin(t * 0.7);
 
+  // FFT real si la copia espejo está sonando; si no (pantalla apagada,
+  // todavía sincronizando, o sin soporte de Web Audio), se usa un pulso
+  // generado como respaldo para que el visualizador nunca se vea muerto.
+  let usarFFT = false;
+  if (sonando && analizadorADN && audioCtxADN && audioCtxADN.state === "running" && !audioAnalisis.paused) {
+    analizadorADN.getByteFrequencyData(datosFrecuenciaADN);
+    usarFFT = true;
+  }
+  // --- DEBUG TEMPORAL: log cada 2s con el estado completo ---
+  if (t - ultimoLogFFT > 2) {
+    ultimoLogFFT = t;
+    console.log("[ADN-DEBUG]", {
+      sonando,
+      usarFFT,
+      audioCtxState: audioCtxADN ? audioCtxADN.state : "sin crear",
+      audioAnalisisPaused: audioAnalisis.paused,
+      audioAnalisisReadyState: audioAnalisis.readyState,
+      audioAnalisisCurrentTime: audioAnalisis.currentTime,
+      audioAnalisisSrc: audioAnalisis.src,
+      muestraFrecuencias: usarFFT ? Array.from(datosFrecuenciaADN.slice(0, 8)) : null,
+    });
+  }
+  // --- FIN DEBUG TEMPORAL ---
+
+  // --- brillo ambiental de fondo, sigue la respiración ---
+  const glow = ctxADN.createRadialGradient(ancho / 2, cy, 0, ancho / 2, cy, ancho * 0.6);
+  glow.addColorStop(0, `rgba(15, 145, 135, ${sonando ? 0.10 * respiracion : 0.04})`);
+  glow.addColorStop(1, "rgba(15, 145, 135, 0)");
+  ctxADN.fillStyle = glow;
+  ctxADN.fillRect(0, 0, ancho, alto);
+
+  const puntosArriba = [], puntosAbajo = [];
   const nodos = [];
   for (let i = 0; i < numNodos; i++) {
     const px = 10 + i * espaciado;
     const angulo = i * 0.5 - velAdn;
-    // Pulso generado (seno con fases distintas por nodo), no es FFT real.
-    const banda = sonando ? (0.5 + 0.5 * Math.sin(t * 2.6 + i * 1.7)) : 0;
-    const actividad = Math.max(0.14, banda); // pulso mínimo en reposo, como el original con ram_usage
-    const amplitud = 12 + actividad * (alto * 0.4);
+    let banda;
+    if (usarFFT) {
+      banda = datosFrecuenciaADN[Math.floor((i / numNodos) * datosFrecuenciaADN.length)] / 255;
+    } else {
+      // Pulso generado (seno con fases distintas por nodo), no es FFT real.
+      banda = sonando ? (0.5 + 0.5 * Math.sin(t * 2.6 + i * 1.7)) : 0.06;
+    }
+    const actividad = Math.max(0.14, banda) * respiracion;
+    const amplitud = (10 + actividad * (alto * 0.42));
 
     const z1 = Math.cos(angulo), z2 = Math.cos(angulo + Math.PI);
     const y1 = cy + Math.sin(angulo) * amplitud;
     const y2 = cy + Math.sin(angulo + Math.PI) * amplitud;
-    const umbral = i / numNodos;
+    const encendido = sonando && actividad >= (i / numNodos) * 0.9;
 
-    if (actividad >= umbral * 0.9) {
-      if ((i * 3 + Math.floor(t * 15)) % 19 === 0) { ctxADN.strokeStyle = "rgb(252,205,72)"; ctxADN.lineWidth = 2; }
-      else { ctxADN.strokeStyle = "rgb(190,185,200)"; ctxADN.lineWidth = 1; }
-      ctxADN.beginPath(); ctxADN.moveTo(px, y1); ctxADN.lineTo(px, y2); ctxADN.stroke();
-      const brillo = Math.min(255, 80 + actividad * 175);
-      nodos.push([z1, px, y1, `rgb(${brillo},145,135)`], [z2, px, y2, `rgb(235,65,${brillo})`]);
+    puntosArriba.push({ px, py: y1, z: z1 });
+    puntosAbajo.push({ px, py: y2, z: z2 });
+
+    // Peldaño de la escalera, tenue para no competir con las hebras curvas.
+    ctxADN.strokeStyle = encendido ? "rgba(252,205,72,0.55)" : "rgba(45,25,65,0.12)";
+    ctxADN.lineWidth = 1;
+    ctxADN.beginPath(); ctxADN.moveTo(px, y1); ctxADN.lineTo(px, y2); ctxADN.stroke();
+
+    const brillo = Math.min(255, 80 + actividad * 175);
+    if (encendido) {
+      nodos.push([z1, px, y1, `rgb(${brillo},145,135)`, true], [z2, px, y2, "rgb(252,205,72)", true]);
     } else {
-      ctxADN.strokeStyle = "rgb(210,205,220)"; ctxADN.lineWidth = 1;
-      ctxADN.beginPath(); ctxADN.moveTo(px, y1); ctxADN.lineTo(px, y2); ctxADN.stroke();
-      nodos.push([z1, px, y1, "rgb(180,175,190)"], [z2, px, y2, "rgb(160,155,170)"]);
+      nodos.push([z1, px, y1, "rgb(15,145,135)", false], [z2, px, y2, "rgb(45,25,65)", false]);
     }
   }
 
+  // --- las dos hebras, como curvas suaves en vez de puntos sueltos ---
+  const dibujarHebra = (puntos, color, opacidad) => {
+    if (puntos.length < 2) return;
+    ctxADN.strokeStyle = color;
+    ctxADN.globalAlpha = opacidad;
+    ctxADN.lineWidth = 2;
+    ctxADN.beginPath();
+    ctxADN.moveTo(puntos[0].px, puntos[0].py);
+    for (let i = 1; i < puntos.length - 1; i++) {
+      const xc = (puntos[i].px + puntos[i + 1].px) / 2;
+      const yc = (puntos[i].py + puntos[i + 1].py) / 2;
+      ctxADN.quadraticCurveTo(puntos[i].px, puntos[i].py, xc, yc);
+    }
+    ctxADN.lineTo(puntos[puntos.length - 1].px, puntos[puntos.length - 1].py);
+    ctxADN.stroke();
+    ctxADN.globalAlpha = 1;
+  };
+  dibujarHebra(puntosArriba, "rgb(15,145,135)", sonando ? 0.85 : 0.4);
+  dibujarHebra(puntosAbajo, "rgb(45,25,65)", sonando ? 0.7 : 0.35);
+
+  // --- nodos, con leve brillo cuando están "encendidos" ---
   nodos.sort((a, b) => a[0] - b[0]);
-  for (const [z, px, py, color] of nodos) {
+  for (const [z, px, py, color, encendido] of nodos) {
+    if (encendido) {
+      ctxADN.shadowColor = color;
+      ctxADN.shadowBlur = 6;
+    }
     ctxADN.fillStyle = color;
-    ctxADN.beginPath(); ctxADN.arc(px, py, 4 * (1.0 + z * 0.3), 0, Math.PI * 2); ctxADN.fill();
+    ctxADN.beginPath(); ctxADN.arc(px, py, 3.2 * (1.0 + z * 0.3), 0, Math.PI * 2); ctxADN.fill();
+    ctxADN.shadowBlur = 0;
   }
 
-  const scanX = (t * 60) % ancho;
-  ctxADN.strokeStyle = "rgb(60,190,180)"; ctxADN.lineWidth = 1;
+  // --- línea de escaneo, más visible y con brillo propio ---
+  const scanX = (t * (sonando ? 60 : 12)) % ancho;
+  ctxADN.shadowColor = "rgb(60,190,180)";
+  ctxADN.shadowBlur = sonando ? 5 : 0;
+  ctxADN.strokeStyle = `rgba(60,190,180,${sonando ? 0.9 : 0.4})`;
+  ctxADN.lineWidth = 1.2;
   ctxADN.beginPath(); ctxADN.moveTo(scanX, 4); ctxADN.lineTo(scanX, alto - 4); ctxADN.stroke();
+  ctxADN.shadowBlur = 0;
 }
 
 function bucleADN(ahora) {
   if (!animandoADN) return;
-  dibujarADN(ahora / 1000);
+  // Blindado: si dibujarADN llegara a tirar un error en un cuadro puntual
+  // (por ejemplo, el canvas todavía en 0x0 justo al abrir el panel), no
+  // se debe perder el bucle para siempre — sin este try/catch, una sola
+  // excepción cortaba requestAnimationFrame(bucleADN) de abajo y el
+  // visualizador quedaba congelado hasta recargar la página.
+  try {
+    dibujarADN(ahora / 1000);
+  } catch (e) {
+    console.warn("[ADN] Error dibujando un cuadro, se sigue intentando:", e.message);
+  }
   requestAnimationFrame(bucleADN);
 }
 window.addEventListener("resize", () => { if (animandoADN) ajustarLienzoADN(); });
