@@ -158,8 +158,19 @@ html, body {
 #titulo-sistema { font-weight: 700; letter-spacing: 0.5px; font-size: 13px; color: var(--turquesa); }
 #estado-animo { margin-left: auto; font-size: 12px; font-style: italic; color: #6a5a80; }
 #btn-ajustes, #btn-musica, #btn-galeria {
-  border: none; background: transparent; font-size: 19px; color: var(--morado-oscuro);
-  padding: 6px 4px; line-height: 1;
+  border: none;
+  background: rgba(45, 25, 65, 0.05);
+  color: var(--morado-oscuro);
+  font-size: 17px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+#btn-ajustes:active, #btn-musica:active, #btn-galeria:active {
+  background: rgba(45, 25, 65, 0.12);
+  transform: scale(0.92);
 }
 
 /* ================= CHAT ================= */
@@ -190,12 +201,14 @@ html, body {
   border: 1px solid var(--tarjeta-borde);
   color: #502d6e;
   border-bottom-left-radius: 3px;
+  box-shadow: 0 2px 8px rgba(45, 25, 65, 0.08);
 }
 .linea.usuario {
   align-self: flex-end;
   background: var(--turquesa);
   color: #f3fffd;
   border-bottom-right-radius: 3px;
+  box-shadow: 0 2px 10px rgba(15, 145, 135, 0.25);
 }
 .linea.sistema {
   align-self: center;
@@ -208,6 +221,19 @@ html, body {
   background: #efe6fa; padding: 1px 5px; border-radius: 4px; font-size: 13px;
 }
 .linea a { color: #146ec8; }
+
+.indicador-escribiendo { display: inline-flex; gap: 4px; align-items: center; padding: 3px 2px; }
+.indicador-escribiendo span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #b4a6cc;
+  animation: rebotePunto 1.2s infinite ease-in-out;
+}
+.indicador-escribiendo span:nth-child(2) { animation-delay: 0.15s; }
+.indicador-escribiendo span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes rebotePunto {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
 
 /* ================= ENTRADA ================= */
 #barra-entrada {
@@ -238,8 +264,9 @@ html, body {
   background: var(--turquesa);
   color: #fff;
   font-size: 17px;
+  transition: opacity 0.1s, transform 0.1s;
 }
-#btn-enviar:active { opacity: 0.8; }
+#btn-enviar:active { opacity: 0.85; transform: scale(0.93); }
 #btn-mic {
   width: 42px; height: 42px;
   border-radius: 50%;
@@ -248,9 +275,9 @@ html, body {
   background: #efe7f7;
   color: var(--morado-oscuro);
   font-size: 17px;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
-#btn-mic:active { opacity: 0.8; }
+#btn-mic:active { opacity: 0.85; transform: scale(0.93); }
 #btn-mic.encendido {
   background: var(--rojo-apagado);
   color: #fff;
@@ -293,14 +320,14 @@ html, body {
   position: relative;
   background: #fff;
   width: 100%;
-  border-radius: 18px 18px 0 0;
-  padding: 20px 30px calc(20px + var(--safe-bottom));
+  border-radius: 22px 22px 0 0;
+  padding: 26px 30px calc(20px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow: hidden;
+  box-shadow: 0 -10px 34px rgba(45, 25, 65, 0.16);
 }
-/* runas decorativas en los costados, como en las ventanas de escritorio */
 .tarjeta::before, .tarjeta::after {
   content: "";
   position: absolute;
@@ -316,25 +343,63 @@ html, body {
 }
 .tarjeta::before { left: 2px; }
 .tarjeta::after { right: 2px; transform: scaleX(-1); animation-delay: 1.4s; }
+.agarradera-tarjeta {
+  position: absolute; top: 9px; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 4px; border-radius: 3px;
+  background: var(--tarjeta-borde);
+  z-index: 1;
+}
 @keyframes runasBrillo {
   0%, 100% { filter: none; opacity: 0.5; }
   50% { filter: hue-rotate(48deg) saturate(2.8) brightness(0.55) drop-shadow(0 0 3px rgba(200,20,180,0.6)); opacity: 0.95; }
 }
-.tarjeta h2 { margin: 0 0 4px; font-size: 17px; color: var(--morado-oscuro); }
+.tarjeta h2 { margin: 0 0 4px; font-size: 17px; color: var(--morado-oscuro); padding-bottom: 10px; border-bottom: 1px solid var(--tarjeta-borde); }
 .tarjeta h3 { margin: 4px 0 0; font-size: 14px; color: var(--morado-oscuro); }
 .tarjeta label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #6a5a80; }
 .tarjeta input[type="text"], .tarjeta input[type="password"], .tarjeta select, .tarjeta textarea {
   border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; resize: vertical;
+  transition: border-color 0.15s;
+}
+.tarjeta input[type="text"]:focus, .tarjeta input[type="password"]:focus, .tarjeta select:focus, .tarjeta textarea:focus {
+  outline: none; border-color: var(--turquesa);
+}
+.tarjeta select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%236a5a80' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  color: var(--morado-oscuro);
+}
+.tarjeta input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--turquesa);
 }
 .separador-ajustes { border: none; border-top: 1px solid var(--tarjeta-borde); margin: 10px 0; }
 .fila-check { flex-direction: row !important; align-items: center; gap: 8px !important; }
 .fila-botones { display: flex; gap: 10px; margin-top: 6px; }
 .fila-botones button {
   flex: 1; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600;
+  transition: transform 0.1s ease, opacity 0.1s ease;
 }
-#btn-guardar-ajustes { background: var(--turquesa); color: #fff; }
-.peligro { background: #fbe4e6; color: var(--rojo-apagado); }
-.cerrar { margin-top: 4px; background: transparent; border: none; color: #8a7aa0; font-size: 13px; padding: 6px; }
+.fila-botones button:active { transform: scale(0.97); opacity: 0.9; }
+#btn-guardar-ajustes { background: var(--turquesa); color: #fff; box-shadow: 0 4px 12px rgba(15, 145, 135, 0.28); }
+.peligro { background: #fbe4e6; color: var(--rojo-apagado); border: 1px solid rgba(200, 50, 65, 0.18) !important; }
+.cerrar {
+  align-self: center;
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--tarjeta-borde);
+  color: #6a5a80;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 22px;
+  border-radius: 20px;
+  transition: background 0.15s, transform 0.1s;
+}
+.cerrar:active { background: rgba(45, 25, 65, 0.06); transform: scale(0.97); }
 
 /* ================= LIBRERÍA MUSICAL ================= */
 #panel-musica { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.45); z-index: 50; display: flex; align-items: flex-end; }
@@ -343,15 +408,18 @@ html, body {
 .secundario {
   border: 1px solid var(--turquesa); background: #fff; color: var(--turquesa);
   border-radius: 10px; padding: 10px; font-size: 14px; font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
 }
+.secundario:active { background: rgba(15, 145, 135, 0.08); transform: scale(0.98); }
 
 /* --- pestañas --- */
 #tabs-musica { display: flex; gap: 4px; border-bottom: 1px solid var(--tarjeta-borde); margin-bottom: 6px; overflow-x: auto; flex-shrink: 0; }
 .tab-musica {
-  border: none; background: transparent; padding: 8px 10px; font-size: 12.5px; font-weight: 600;
-  color: #8a7aa0; white-space: nowrap; border-bottom: 2px solid transparent;
+  border: none; background: transparent; padding: 8px 12px; font-size: 12.5px; font-weight: 600;
+  color: #8a7aa0; white-space: nowrap; border-radius: 20px 20px 0 0; border-bottom: 2px solid transparent;
+  transition: background 0.15s, color 0.15s;
 }
-.tab-musica.activa { color: var(--turquesa); border-bottom-color: var(--turquesa); }
+.tab-musica.activa { color: var(--turquesa); background: rgba(15, 145, 135, 0.08); border-bottom-color: var(--turquesa); }
 .vista-musica { display: none; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; min-height: 0; }
 .vista-musica.activa { display: flex; }
 
@@ -389,7 +457,8 @@ html, body {
 .fila-cancion.activa .titulo-fila-cancion { color: var(--rojo-apagado); font-weight: 700; }
 .titulo-fila-cancion { font-size: 13.5px; color: #502d6e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .subtitulo-fila-cancion { font-size: 11.5px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.btn-icono { border: none; background: transparent; font-size: 17px; padding: 4px 6px; color: #b4a6cc; flex: none; }
+.btn-icono { border: none; background: transparent; font-size: 17px; padding: 4px 6px; color: #b4a6cc; flex: none; transition: transform 0.1s; }
+.btn-icono:active { transform: scale(0.85); }
 .btn-icono.activo { color: var(--rojo-apagado); }
 
 /* --- playlists --- */
@@ -579,6 +648,7 @@ html, body {
 #tiempos-cancion { display: flex; justify-content: space-between; font-size: 11px; color: #8a7aa0; }
 .fila-controles { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 0; }
 .control { border: none; background: transparent; font-size: 20px; color: var(--morado-oscuro); padding: 3px; border-radius: 50%; transition: background 0.15s, transform 0.1s; }
+.control:active { transform: scale(0.88); }
 .control.principal {
   font-size: 18px; color: #fff; background: var(--turquesa);
   width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
@@ -659,6 +729,7 @@ html, body {
   <!-- ================= LIBRERÍA MUSICAL ================= -->
   <div id="panel-musica" class="oculto">
     <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
       <h2>Música</h2>
 
       <!-- ---- login / registro ---- -->
@@ -851,6 +922,7 @@ html, body {
   <!-- ================= MENÚ "AGREGAR A PLAYLIST" ================= -->
   <div id="menu-agregar-playlist" class="oculto">
     <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
       <h2>Agregar a playlist</h2>
       <div id="opciones-agregar-playlist"></div>
       <button id="btn-cerrar-menu-playlist" class="cerrar">Cancelar</button>
@@ -860,6 +932,7 @@ html, body {
   <!-- ================= PANEL DE AJUSTES ================= -->
   <div id="panel-ajustes" class="oculto">
     <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
       <h2>Ajustes</h2>
       <label>Modelo
         <input id="input-modelo" type="text" placeholder="nousresearch/hermes-4-70b" />
@@ -1118,6 +1191,8 @@ async function enviarMensaje(mensaje) {
   agregarLinea("usuario", mensaje);
   mostrarManoPensativa();
   const idBurbuja = agregarLinea("gyan", "…", true);
+  const divBurbuja = document.getElementById(idBurbuja);
+  if (divBurbuja) divBurbuja.innerHTML = '<span class="indicador-escribiendo"><span></span><span></span><span></span></span>';
 
   const directrizAnimo = calcularEstadoAnimo(mensaje);
   const reportePlasticidad = evaluarYModificar(mensaje);
