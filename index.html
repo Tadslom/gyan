@@ -401,6 +401,98 @@ html, body {
 }
 .cerrar:active { background: rgba(45, 25, 65, 0.06); transform: scale(0.97); }
 
+/* ================= RELOJ ================= */
+#reloj-widget {
+  position: fixed;
+  top: calc(var(--safe-top) + 60px);
+  right: 10px;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px 7px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.reloj-esfera-envoltorio {
+  position: relative;
+  width: 84px; height: 84px;
+  flex: none;
+}
+.reloj-halo {
+  position: absolute; inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--turquesa), #a68fd6, var(--rojo-apagado), var(--turquesa));
+  filter: blur(7px);
+  opacity: 0.35;
+  animation: reloj-respiro 3.6s ease-in-out infinite;
+}
+@keyframes reloj-respiro {
+  0%, 100% { opacity: 0.25; transform: scale(0.99); }
+  50% { opacity: 0.5; transform: scale(1.03); }
+}
+.reloj-runas {
+  position: absolute; inset: -2px;
+  border-radius: 50%;
+  background-image: var(--runa-svg);
+  background-repeat: round;
+  opacity: 0.4;
+  animation: reloj-giro 90s linear infinite, runasBrillo 4.5s ease-in-out infinite;
+}
+@keyframes reloj-giro { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.reloj-esfera {
+  position: absolute; inset: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fff, var(--tarjeta-bg) 55%, var(--fondo-2) 100%);
+  box-shadow: 0 4px 14px rgba(45, 25, 65, 0.26), inset 0 0 0 1px var(--tarjeta-borde);
+}
+.reloj-marca {
+  position: absolute;
+  left: 50%; top: 3px;
+  width: 1px; height: 5px;
+  background: #b4a6cc;
+  transform-origin: 50% 34px;
+  border-radius: 2px;
+}
+.reloj-marca.mayor {
+  width: 1.5px; height: 7px;
+  background: var(--turquesa);
+}
+.reloj-manecilla {
+  position: absolute;
+  left: 50%; bottom: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 3px;
+  background: var(--morado-oscuro);
+}
+#reloj-manecilla-hora { width: 2px; height: 16px; margin-left: -1px; }
+#reloj-manecilla-minuto { width: 1.5px; height: 25px; margin-left: -0.75px; }
+#reloj-manecilla-segundo {
+  width: 1px; height: 29px; margin-left: -0.5px;
+  background: var(--rojo-apagado);
+}
+.reloj-centro {
+  position: absolute; left: 50%; top: 50%;
+  width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--rojo-apagado);
+  box-shadow: 0 0 0 2px var(--tarjeta-bg);
+  z-index: 2;
+}
+#reloj-hora-digital {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.3px;
+  color: var(--morado-oscuro); text-align: center;
+}
+#reloj-fecha-digital {
+  font-size: 9px; color: #8a7aa0; text-align: center; text-transform: capitalize;
+  line-height: 1.15;
+  max-width: 78px;
+}
+
 /* ================= LIBRERÍA MUSICAL ================= */
 #panel-musica { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.45); z-index: 50; display: flex; align-items: flex-end; }
 #panel-musica.oculto { display: none; }
@@ -930,6 +1022,23 @@ html, body {
   </div>
 
   <!-- ================= PANEL DE AJUSTES ================= -->
+  <!-- ================= RELOJ ================= -->
+  <div id="reloj-widget">
+    <div class="reloj-esfera-envoltorio">
+      <div class="reloj-halo"></div>
+      <div class="reloj-runas"></div>
+      <div class="reloj-esfera">
+        <div id="reloj-marcas"></div>
+        <div id="reloj-manecilla-hora" class="reloj-manecilla"></div>
+        <div id="reloj-manecilla-minuto" class="reloj-manecilla"></div>
+        <div id="reloj-manecilla-segundo" class="reloj-manecilla"></div>
+        <div class="reloj-centro"></div>
+      </div>
+    </div>
+    <div id="reloj-hora-digital">--:--:--</div>
+    <div id="reloj-fecha-digital">—</div>
+  </div>
+
   <div id="panel-ajustes" class="oculto">
     <div class="tarjeta">
       <div class="agarradera-tarjeta"></div>
@@ -1640,6 +1749,43 @@ document.getElementById("btn-restaurar-doctrina").addEventListener("click", () =
   llenarCamposDoctrina();
   agregarLinea("sistema", "Doctrina restaurada a la original.");
 });
+
+// ---------------------------------------------------------------------
+// RELOJ
+// ---------------------------------------------------------------------
+(function crearMarcasReloj() {
+  const contenedor = document.getElementById("reloj-marcas");
+  for (let i = 0; i < 60; i++) {
+    const marca = document.createElement("div");
+    marca.className = "reloj-marca" + (i % 5 === 0 ? " mayor" : "");
+    marca.style.transform = `rotate(${i * 6}deg)`;
+    contenedor.appendChild(marca);
+  }
+})();
+
+function actualizarReloj() {
+  const ahora = new Date();
+  const horas = ahora.getHours();
+  const minutos = ahora.getMinutes();
+  const segundos = ahora.getSeconds();
+
+  const gradosHora = (horas % 12) * 30 + minutos * 0.5;
+  const gradosMinuto = minutos * 6 + segundos * 0.1;
+  const gradosSegundo = segundos * 6;
+
+  document.getElementById("reloj-manecilla-hora").style.transform = `rotate(${gradosHora}deg)`;
+  document.getElementById("reloj-manecilla-minuto").style.transform = `rotate(${gradosMinuto}deg)`;
+  document.getElementById("reloj-manecilla-segundo").style.transform = `rotate(${gradosSegundo}deg)`;
+
+  const horas12 = horas % 12 === 0 ? 12 : horas % 12;
+  const ampm = horas < 12 ? "AM" : "PM";
+  document.getElementById("reloj-hora-digital").textContent =
+    `${String(horas12).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")} ${ampm}`;
+  document.getElementById("reloj-fecha-digital").textContent =
+    ahora.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" });
+}
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
 
 // ---------------------------------------------------------------------
 // ENTRADA DE TEXTO
