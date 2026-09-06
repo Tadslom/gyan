@@ -545,24 +545,48 @@ html, body {
 .subtitulo-carrusel { font-size: 11px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- buscador y grilla de álbumes --- */
-#buscador-albumes { margin-bottom: 2px; }
-.grid-albumes { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px; padding-bottom: 4px; }
-.item-album { display: flex; flex-direction: column; gap: 6px; text-align: left; background: none; border: none; padding: 0; transition: transform 0.18s ease; }
-.item-album:hover, .item-album:active { transform: translateY(-3px); }
+#cabecera-albumes { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+#cabecera-albumes #buscador-albumes { flex: 1; margin-bottom: 0; }
+.contador-albumes {
+  flex: none; font-size: 11px; font-weight: 700; color: var(--turquesa);
+  background: rgba(15, 145, 135, 0.1); border: 1px solid rgba(15, 145, 135, 0.25);
+  border-radius: 999px; padding: 5px 11px; white-space: nowrap;
+}
+.grid-albumes {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+  gap: 16px 14px; padding: 2px 2px 8px;
+}
+.item-album {
+  display: flex; flex-direction: column; gap: 7px; text-align: left; background: none; border: none;
+  padding: 0; border-radius: 14px; transition: transform 0.18s ease;
+  animation: album-aparece 0.28s ease backwards;
+}
+.item-album:hover, .item-album:active { transform: translateY(-4px); }
+.item-album:focus-visible { outline: 2px solid var(--turquesa); outline-offset: 3px; border-radius: 12px; }
+@keyframes album-aparece {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .portada-album {
   width: 100%; aspect-ratio: 1; border-radius: 12px; object-fit: cover;
   background: linear-gradient(135deg, var(--fondo-2), var(--fondo-1)); border: 1px solid var(--tarjeta-borde);
   box-shadow: 0 4px 12px rgba(80, 45, 110, 0.14);
-  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 .item-album:hover .portada-album, .item-album:active .portada-album {
-  box-shadow: 0 12px 22px rgba(80, 45, 110, 0.32);
-  border-color: rgba(15, 145, 135, 0.35);
+  box-shadow: 0 14px 24px rgba(80, 45, 110, 0.34);
+  border-color: rgba(15, 145, 135, 0.4);
 }
-.portada-album.vacia { display: flex; align-items: center; justify-content: center; font-size: 26px; color: #b4a6cc; }
-.album-titulo { font-size: 12.5px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25; }
-.album-artista { font-size: 11.5px; color: #8a7aa0; }
-.estado-vacio-musica { padding: 20px 6px; font-size: 13px; color: #8a7aa0; font-style: italic; text-align: center; }
+.portada-album.vacia {
+  display: flex; align-items: center; justify-content: center; font-size: 26px; color: #b4a6cc;
+  background: linear-gradient(135deg, var(--fondo-2), var(--fondo-1));
+}
+.album-titulo {
+  font-size: 12.5px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.album-artista { font-size: 11.5px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.estado-vacio-musica { padding: 26px 6px; font-size: 13px; color: #8a7aa0; font-style: italic; text-align: center; }
 
 /* --- detalle de álbum --- */
 #vista-album-detalle .tarjeta { max-height: none; }
@@ -1030,7 +1054,10 @@ html, body {
 
         <!-- ---- álbumes ---- -->
         <div id="vista-albumes-musica" class="vista-musica">
-          <input id="buscador-albumes" type="text" placeholder="Buscar álbum o artista…" />
+          <div id="cabecera-albumes">
+            <input id="buscador-albumes" type="text" placeholder="Buscar álbum o artista…" />
+            <span id="contador-albumes" class="contador-albumes oculto"></span>
+          </div>
           <div id="grid-albumes" class="grid-albumes"></div>
         </div>
 
@@ -2472,12 +2499,21 @@ document.querySelectorAll(".tab-musica").forEach(btn => btn.addEventListener("cl
 // ---- álbumes ----
 async function cargarAlbumes(buscar = "") {
   const grid = document.getElementById("grid-albumes");
+  const contador = document.getElementById("contador-albumes");
   grid.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  contador.classList.add("oculto");
   try {
-    const parametros = new URLSearchParams();
+    // porPagina alto para traer la colección completa de una sola vez (antes se
+    // pedía sin este parámetro y la API sólo devolvía la primera página).
+    const parametros = new URLSearchParams({ porPagina: "1000" });
     if (buscar) parametros.set("buscar", buscar);
     const datos = await apiMusica("/api/albumes?" + parametros.toString());
     pintarGridAlbumes(datos.albumes);
+    if (datos.albumes && datos.albumes.length > 0) {
+      const cantidad = datos.albumes.length;
+      contador.textContent = `${cantidad} álbum${cantidad === 1 ? "" : "es"}`;
+      contador.classList.remove("oculto");
+    }
   } catch (e) {
     grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
@@ -2543,9 +2579,10 @@ function pintarGridAlbumes(albumes) {
     grid.innerHTML = '<div class="estado-vacio-musica">No se encontraron álbumes.</div>';
     return;
   }
-  albumes.forEach(album => {
+  albumes.forEach((album, indice) => {
     const btn = document.createElement("button");
     btn.className = "item-album";
+    btn.style.animationDelay = `${Math.min(indice, 24) * 18}ms`;
     const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
     const portadaHtml = portadaUrl
       ? `<img class="portada-album" src="${portadaUrl}" alt="" loading="lazy" />`
