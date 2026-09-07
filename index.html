@@ -573,6 +573,17 @@ html, body {
 /* --- buscador y grilla de álbumes --- */
 #cabecera-albumes { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 #cabecera-albumes #buscador-albumes { flex: 1; margin-bottom: 0; }
+#cabecera-busqueda-global { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+#cabecera-busqueda-global input { flex: 1; margin-bottom: 0; }
+.chips-busquedas-recientes { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-busqueda-reciente { display: inline-flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.06); border: 1px solid var(--tarjeta-borde); border-radius: 999px; padding: 2px 4px 2px 14px; font-size: 12.5px; }
+.chip-busqueda-reciente-texto { background: none; border: none; color: inherit; font-size: 12.5px; padding: 4px 0; cursor: pointer; }
+.chip-busqueda-reciente-texto:hover { color: var(--turquesa); }
+.chip-busqueda-reciente-quitar { background: none; border: none; color: inherit; opacity: 0.6; font-size: 15px; line-height: 1; padding: 4px 8px; cursor: pointer; }
+.chip-busqueda-reciente-quitar:hover { opacity: 1; color: #c0392b; }
+.cabecera-seccion-recientes { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.link-borrar-recientes { background: none; border: none; color: var(--turquesa); font-size: 12px; cursor: pointer; padding: 0; }
+.link-borrar-recientes:hover { text-decoration: underline; }
 .contador-albumes {
   flex: none; font-size: 11px; font-weight: 700; color: var(--turquesa);
   background: rgba(15, 145, 135, 0.1); border: 1px solid rgba(15, 145, 135, 0.25);
@@ -1067,7 +1078,7 @@ html, body {
 
         <div id="tabs-musica">
           <button class="tab-musica activa" data-vista="inicio">Inicio</button>
-          <button class="tab-musica" data-vista="canciones">Canciones</button>
+          <button class="tab-musica" data-vista="busqueda">Búsqueda</button>
           <button class="tab-musica" data-vista="albumes">Álbumes</button>
           <button class="tab-musica" data-vista="artistas">Artistas</button>
           <button class="tab-musica" data-vista="aleatorio">Aleatorio</button>
@@ -1098,8 +1109,24 @@ html, body {
           </div>
         </div>
 
-        <div id="vista-canciones-musica" class="vista-musica">
-          <div id="lista-canciones-musica"></div>
+        <div id="vista-busqueda-musica" class="vista-musica">
+          <div id="cabecera-busqueda-global">
+            <input id="buscador-global-musica" type="text" placeholder="Buscar álbumes, canciones o artistas…" />
+          </div>
+          <div id="busqueda-inicial-musica">
+            <div class="seccion-inicio oculto" id="seccion-busquedas-recientes">
+              <div class="cabecera-seccion-recientes">
+                <h3 class="titulo-seccion-inicio">🕓 Búsquedas recientes</h3>
+                <button type="button" id="btn-borrar-busquedas-recientes" class="link-borrar-recientes">Borrar todo</button>
+              </div>
+              <div id="chips-busquedas-recientes" class="chips-busquedas-recientes"></div>
+            </div>
+            <div class="seccion-inicio">
+              <h3 class="titulo-seccion-inicio">✨ Recomendado para ti</h3>
+              <div class="carrusel-musica" id="carrusel-recomendado-busqueda"></div>
+            </div>
+          </div>
+          <div id="resultados-busqueda-global"></div>
         </div>
 
         <!-- ---- álbumes ---- -->
@@ -1296,7 +1323,7 @@ html, body {
       <div class="agarradera-tarjeta"></div>
       <h2>Ajustes</h2>
       <label>Modelo
-        <input id="input-modelo" type="text" placeholder="openrouter/free" />
+        <input id="input-modelo" type="text" placeholder="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" />
       </label>
       <label class="fila-check">
         <input id="input-voz-activa" type="checkbox" checked />
@@ -1441,7 +1468,7 @@ const _cfg = JSON.parse(atob(
 
 let ajustes = Almacen.cargar("gyan_ajustes", {
   apiKey: _cfg.apiKey,
-  modelo: "openrouter/free",
+  modelo: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
   vozActiva: true,
   fishApiKey: _cfg.fishApiKey,
   fishVoz: _cfg.fishVoz,
@@ -1602,7 +1629,7 @@ async function enviarMensaje(mensaje, adjunto = null) {
         "X-Title": "DIAR System Gyan"
       },
       body: JSON.stringify({
-        model: ajustes.modelo || "openrouter/free",
+        model: ajustes.modelo || "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
         messages: mensajesLLM,
         stream: true,
         temperature: 0.75,
@@ -1617,7 +1644,7 @@ async function enviarMensaje(mensaje, adjunto = null) {
         if (cuerpoError?.error?.message) detalle = cuerpoError.error.message;
       } catch { /* la respuesta de error no era JSON válido */ }
       if (res.status === 404) {
-        detalle += ` — probablemente el modelo "${ajustes.modelo || "openrouter/free"}" configurado en Ajustes no existe o ya no está disponible en OpenRouter (no es un problema de conexión ni de la API Key).`;
+        detalle += ` — probablemente el modelo "${ajustes.modelo || "cognitivecomputations/dolphin-mistral-24b-venice-edition:free"}" configurado en Ajustes no existe o ya no está disponible en OpenRouter (no es un problema de conexión ni de la API Key).`;
       }
       throw new Error(detalle);
     }
@@ -1645,6 +1672,8 @@ async function enviarMensaje(mensaje, adjunto = null) {
         } catch { /* fragmento incompleto, se ignora */ }
       }
     }
+
+    respuestaCompleta = limpiarRazonamiento(respuestaCompleta);
 
     historialChat.push({ role: "user", content: adjunto ? lineaVisibleUsuario : mensaje });
     historialChat.push({ role: "assistant", content: respuestaCompleta });
@@ -1956,9 +1985,24 @@ function agregarLinea(tipo, texto, esBurbuja = false) {
   return id;
 }
 
+// Algunos modelos "razonadores" escriben su monólogo interno como texto plano
+// antes de la respuesta real, envuelto en etiquetas <think>, <thinking> o
+// <reasoning>. Esto lo saca de lo que se muestra en pantalla, se guarda en
+// el historial y se lee en voz alta.
+function limpiarRazonamiento(texto) {
+  if (!texto) return texto;
+  let limpio = texto.replace(/<(think|thinking|reasoning)>[\s\S]*?<\/\1>/gi, "");
+  // Si la etiqueta de apertura llegó pero todavía no se cerró (el modelo
+  // sigue "pensando" en este chunk del streaming, o se quedó sin tokens
+  // mientras pensaba), se descarta desde ahí: todavía no hay respuesta
+  // real que mostrar.
+  limpio = limpio.replace(/<(think|thinking|reasoning)>[\s\S]*$/i, "");
+  return limpio.trim();
+}
+
 function actualizarLinea(id, texto) {
   const div = document.getElementById(id);
-  if (div) div.innerHTML = formatearTexto(texto);
+  if (div) div.innerHTML = formatearTexto(limpiarRazonamiento(texto));
   ventanaChat.scrollTop = ventanaChat.scrollHeight;
 }
 
@@ -1997,7 +2041,7 @@ function abrirAjustes() {
 document.getElementById("btn-ajustes").addEventListener("click", abrirAjustes);
 document.getElementById("btn-cerrar-ajustes").addEventListener("click", () => panelAjustes.classList.add("oculto"));
 document.getElementById("btn-guardar-ajustes").addEventListener("click", () => {
-  ajustes.modelo = document.getElementById("input-modelo").value.trim() || "openrouter/free";
+  ajustes.modelo = document.getElementById("input-modelo").value.trim() || "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
   ajustes.vozActiva = document.getElementById("input-voz-activa").checked;
   ajustes.fishVoz = document.getElementById("input-fish-voz").value.trim();
   Almacen.guardar("gyan_ajustes", ajustes);
@@ -2692,7 +2736,11 @@ function cambiarTabMusica(nombre) {
   document.querySelectorAll(".tab-musica").forEach(btn => btn.classList.toggle("activa", btn.dataset.vista === nombre));
   document.querySelectorAll(".vista-musica").forEach(v => v.classList.toggle("activa", v.id === `vista-${nombre}-musica`));
   if (nombre === "inicio") cargarInicio();
-  if (nombre === "canciones") cargarCanciones();
+  if (nombre === "busqueda") {
+    const campo = document.getElementById("buscador-global-musica");
+    if (!campo.value.trim()) mostrarInicioBusqueda();
+    setTimeout(() => campo.focus(), 50);
+  }
   if (nombre === "albumes") cargarAlbumes(document.getElementById("buscador-albumes").value.trim());
   if (nombre === "artistas") cargarArtistas();
   if (nombre === "aleatorio") cargarAleatorio();
@@ -2709,7 +2757,7 @@ async function obtenerTodosLosAlbumes(forzar = false) {
   // porPagina alto para traer la colección completa de una sola vez (antes se
   // pedía sin este parámetro y la API sólo devolvía la primera página).
   const datos = await apiMusica("/api/albumes?porPagina=1000");
-  cacheAlbumesTodos = datos.albumes || [];
+  cacheAlbumesTodos = mezclarArreglo(datos.albumes || []);
   return cacheAlbumesTodos;
 }
 // se llama después de cualquier alta/baja/edición en Admin para que álbumes,
@@ -2800,17 +2848,37 @@ function agruparAlbumesPorArtista(albumes) {
     if (!porArtista.has(a.artista)) porArtista.set(a.artista, []);
     porArtista.get(a.artista).push(a);
   });
-  return Array.from(porArtista.entries())
-    .map(([nombre, albumesDelArtista]) => ({ nombre, albumes: albumesDelArtista }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  return mezclarArreglo(Array.from(porArtista.entries())
+    .map(([nombre, albumesDelArtista]) => ({ nombre, albumes: albumesDelArtista })));
 }
-function crearItemArtista(nombreArtista, cantidadAlbumes, mapaFotos, claseExtra = "item-artista") {
+function obtenerPortadaUltimoAlbum(albumesDelArtista) {
+  const conPortada = albumesDelArtista.filter(a => a.clave_portada);
+  if (conPortada.length === 0) return null;
+  // Se prioriza el año más reciente; si falta el año o hay empate, se usa
+  // el id más alto (los álbumes se cargan con ids autoincrementales, así
+  // que un id mayor es, en la práctica, un álbum agregado más tarde).
+  const ordenado = [...conPortada].sort((a, b) => {
+    const anioA = typeof a.anio === "number" ? a.anio : -Infinity;
+    const anioB = typeof b.anio === "number" ? b.anio : -Infinity;
+    if (anioB !== anioA) return anioB - anioA;
+    return (b.id || 0) - (a.id || 0);
+  });
+  return ordenado[0];
+}
+function crearItemArtista(nombreArtista, albumesDelArtista, mapaFotos, claseExtra = "item-artista") {
   const item = document.createElement("button");
   item.className = claseExtra;
+  const cantidadAlbumes = albumesDelArtista.length;
   const fotoArtista = mapaFotos.get(normalizarTitulo(nombreArtista));
-  const avatarHtml = (fotoArtista && fotoArtista.clave_foto)
-    ? `<img class="avatar-artista" src="${ajustes.apiMusicaUrl}/api/foto-artista/${fotoArtista.id}" alt="" loading="lazy" />`
-    : `<div class="avatar-artista">🎤</div>`;
+  let avatarHtml;
+  if (fotoArtista && fotoArtista.clave_foto) {
+    avatarHtml = `<img class="avatar-artista" src="${ajustes.apiMusicaUrl}/api/foto-artista/${fotoArtista.id}" alt="" loading="lazy" />`;
+  } else {
+    const ultimoAlbum = obtenerPortadaUltimoAlbum(albumesDelArtista);
+    avatarHtml = ultimoAlbum
+      ? `<img class="avatar-artista" src="${ajustes.apiMusicaUrl}/api/portada/${ultimoAlbum.id}" alt="" loading="lazy" />`
+      : `<div class="avatar-artista">🎤</div>`;
+  }
   item.innerHTML = `
     ${avatarHtml}
     <div class="artista-nombre">${escaparHtml(nombreArtista)}</div>
@@ -2839,7 +2907,7 @@ async function cargarArtistas() {
     const artistas = agruparAlbumesPorArtista(albumes);
     grid.innerHTML = "";
     artistas.forEach(({ nombre, albumes: albumesDelArtista }) => {
-      grid.appendChild(crearItemArtista(nombre, albumesDelArtista.length, mapaFotos));
+      grid.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos));
     });
   } catch (e) {
     grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
@@ -2866,11 +2934,74 @@ function pintarGridAlbumes(albumes, grid = document.getElementById("grid-albumes
 }
 
 // ---- búsqueda unificada estilo Spotify: álbumes + canciones + artistas ----
+let historialBusquedasRecientes = Almacen.cargar("gyan_busquedas_recientes", []);
+function guardarBusquedaReciente(texto) {
+  const limpio = texto.trim();
+  if (!limpio) return;
+  historialBusquedasRecientes = [
+    limpio,
+    ...historialBusquedasRecientes.filter(t => t.toLowerCase() !== limpio.toLowerCase()),
+  ].slice(0, 8);
+  Almacen.guardar("gyan_busquedas_recientes", historialBusquedasRecientes);
+}
+function eliminarBusquedaReciente(texto) {
+  historialBusquedasRecientes = historialBusquedasRecientes.filter(t => t !== texto);
+  Almacen.guardar("gyan_busquedas_recientes", historialBusquedasRecientes);
+  pintarBusquedasRecientes();
+}
+function pintarBusquedasRecientes() {
+  const seccion = document.getElementById("seccion-busquedas-recientes");
+  const contenedor = document.getElementById("chips-busquedas-recientes");
+  if (historialBusquedasRecientes.length === 0) {
+    seccion.classList.add("oculto");
+    return;
+  }
+  seccion.classList.remove("oculto");
+  contenedor.innerHTML = "";
+  historialBusquedasRecientes.forEach(texto => {
+    const chip = document.createElement("span");
+    chip.className = "chip-busqueda-reciente";
+    const btnTexto = document.createElement("button");
+    btnTexto.type = "button";
+    btnTexto.className = "chip-busqueda-reciente-texto";
+    btnTexto.textContent = texto;
+    btnTexto.addEventListener("click", () => {
+      const campo = document.getElementById("buscador-global-musica");
+      campo.value = texto;
+      campo.dispatchEvent(new Event("input"));
+    });
+    const btnQuitar = document.createElement("button");
+    btnQuitar.type = "button";
+    btnQuitar.className = "chip-busqueda-reciente-quitar";
+    btnQuitar.textContent = "×";
+    btnQuitar.setAttribute("aria-label", `Quitar "${texto}" de recientes`);
+    btnQuitar.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      eliminarBusquedaReciente(texto);
+    });
+    chip.appendChild(btnTexto);
+    chip.appendChild(btnQuitar);
+    contenedor.appendChild(chip);
+  });
+}
+function mostrarInicioBusqueda() {
+  document.getElementById("resultados-busqueda-global").innerHTML = "";
+  document.getElementById("busqueda-inicial-musica").classList.remove("oculto");
+  pintarBusquedasRecientes();
+  cargarUnCarruselInicio("carrusel-recomendado-busqueda", "/api/mis/recomendado?limite=20", "Escuchá algo para recibir recomendaciones.");
+}
+document.getElementById("btn-borrar-busquedas-recientes").addEventListener("click", () => {
+  historialBusquedasRecientes = [];
+  Almacen.guardar("gyan_busquedas_recientes", historialBusquedasRecientes);
+  pintarBusquedasRecientes();
+});
 function normalizarBusqueda(texto) {
   return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-async function mostrarBusquedaGlobalMusica(texto) {
-  const contenedor = document.getElementById("resultados-busqueda-musica");
+async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-busqueda-musica") {
+  const contenedor = document.getElementById(idContenedor);
+  const inicioBusqueda = document.getElementById("busqueda-inicial-musica");
+  if (inicioBusqueda) inicioBusqueda.classList.add("oculto");
   contenedor.innerHTML = '<div class="estado-vacio-musica">Buscando…</div>';
   const q = normalizarBusqueda(texto);
   try {
@@ -2897,7 +3028,7 @@ async function mostrarBusquedaGlobalMusica(texto) {
       seccion.className = "seccion-resultado-busqueda";
       seccion.innerHTML = '<h3 class="titulo-seccion-resultado">Artistas</h3>';
       artistasCoincidentes.slice(0, 6).forEach(({ nombre, albumes: albumesDelArtista }) => {
-        seccion.appendChild(crearItemArtista(nombre, albumesDelArtista.length, mapaFotos, "item-artista fila-artista-resultado"));
+        seccion.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos, "item-artista fila-artista-resultado"));
       });
       contenedor.appendChild(seccion);
     }
@@ -2929,6 +3060,17 @@ document.getElementById("buscador-albumes").addEventListener("input", (e) => {
   clearTimeout(temporizadorBusquedaAlbumes);
   const valor = e.target.value;
   temporizadorBusquedaAlbumes = setTimeout(() => cargarAlbumes(valor), 350);
+});
+
+let temporizadorBusquedaGlobal = null;
+document.getElementById("buscador-global-musica").addEventListener("input", (e) => {
+  clearTimeout(temporizadorBusquedaGlobal);
+  const valor = e.target.value.trim();
+  if (!valor) { mostrarInicioBusqueda(); return; }
+  temporizadorBusquedaGlobal = setTimeout(() => {
+    mostrarBusquedaGlobalMusica(valor, "resultados-busqueda-global");
+    guardarBusquedaReciente(valor);
+  }, 350);
 });
 
 async function abrirAlbum(albumId) {
@@ -3103,38 +3245,26 @@ function programarRegistroReproduccion(cancionId) {
   }, 15000); // se cuenta como "escuchada" recién a los 15s, para no sumar por saltar canciones
 }
 
-async function cargarCanciones() {
-  const contenedor = document.getElementById("lista-canciones-musica");
-  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando tu música…</div>';
-  try {
-    const todas = await obtenerTodasLasCanciones();
-    if (todas.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no hay canciones cargadas.</div>';
-      return;
-    }
-    const cola = todas.slice().sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
-    contenedor.innerHTML = "";
-    cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
-  } catch (e) {
-    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
-  }
-}
-
 // ---- aleatorio: todas las canciones de la librería, mezcladas ----
 let cachePorMezclarTodo = null; // cachea la lista de canciones para no re-pedir todos los álbumes cada vez
 async function obtenerTodasLasCanciones() {
   if (cachePorMezclarTodo) return cachePorMezclarTodo;
   const datosAlbumes = await apiMusica("/api/albumes?porPagina=300");
+  // Antes se pedía el detalle de cada álbum en serie (uno espera a que termine
+  // el anterior), lo que hacía esto lentísimo con muchos álbumes. Ahora se
+  // piden todos en paralelo; si alguno falla, se ignora y se sigue con el resto.
+  const resultados = await Promise.allSettled(
+    datosAlbumes.albumes.map(album => apiMusica(`/api/albumes/${album.id}`))
+  );
   const todas = [];
-  for (const album of datosAlbumes.albumes) {
-    try {
-      const detalle = await apiMusica(`/api/albumes/${album.id}`);
-      const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
-      detalle.canciones.forEach(c => {
-        todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl });
-      });
-    } catch { /* si un álbum falla, seguimos con el resto */ }
-  }
+  resultados.forEach((resultado, indice) => {
+    if (resultado.status !== "fulfilled") return;
+    const album = datosAlbumes.albumes[indice];
+    const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
+    resultado.value.canciones.forEach(c => {
+      todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl });
+    });
+  });
   cachePorMezclarTodo = todas;
   return todas;
 }
