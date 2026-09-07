@@ -241,11 +241,25 @@ html, body {
   bottom: 0; left: 0; right: 0;
   padding: 10px 10px calc(10px + var(--safe-bottom));
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   background: rgba(255,255,255,0.9);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--tarjeta-borde);
   z-index: 20;
+}
+#fila-entrada-texto { display: flex; gap: 8px; }
+#chip-adjunto-chat {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  align-self: flex-start; max-width: 100%;
+  background: rgba(15, 145, 135, 0.1); border: 1px solid rgba(15, 145, 135, 0.25);
+  border-radius: 999px; padding: 5px 6px 5px 12px;
+  font-size: 12px; font-weight: 600; color: var(--turquesa);
+}
+#chip-adjunto-chat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chip-adjunto-chat button {
+  flex: none; width: 20px; height: 20px; border-radius: 50%; border: none;
+  background: rgba(15, 145, 135, 0.18); color: var(--turquesa); font-size: 11px; line-height: 1;
 }
 #input-texto {
   flex: 1;
@@ -278,6 +292,18 @@ html, body {
   transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 #btn-mic:active { opacity: 0.85; transform: scale(0.93); }
+#btn-adjuntar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: none;
+  flex: none;
+  background: #efe7f7;
+  color: var(--morado-oscuro);
+  font-size: 16px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+#btn-adjuntar:active { opacity: 0.85; transform: scale(0.93); }
+#btn-adjuntar.activo { background: var(--turquesa); color: #fff; }
 #btn-mic.encendido {
   background: var(--rojo-apagado);
   color: #fff;
@@ -587,6 +613,27 @@ html, body {
 }
 .album-artista { font-size: 11.5px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .estado-vacio-musica { padding: 26px 6px; font-size: 13px; color: #8a7aa0; font-style: italic; text-align: center; }
+
+/* --- paginador de álbumes --- */
+.paginador { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 0 4px; }
+.paginador .secundario { padding: 8px 16px; font-size: 12.5px; }
+.paginador .secundario:disabled { opacity: 0.4; }
+#indicador-pagina { font-size: 12px; font-weight: 700; color: #8a7aa0; min-width: 84px; text-align: center; }
+
+/* --- búsqueda unificada (álbumes + canciones + artistas) --- */
+#resultados-busqueda-musica { display: flex; flex-direction: column; gap: 16px; }
+.seccion-resultado-busqueda { display: flex; flex-direction: column; gap: 8px; }
+.titulo-seccion-resultado {
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--turquesa);
+}
+.fila-artista-resultado {
+  display: flex; align-items: center; gap: 10px; text-align: left; background: none; border: none; padding: 4px 0;
+}
+.fila-artista-resultado .avatar-artista { width: 40px; height: 40px; flex: none; }
+.fila-artista-resultado .artista-nombre { font-size: 13px; font-weight: 700; color: var(--morado-oscuro); }
+.fila-artista-resultado .artista-conteo { font-size: 11px; color: #8a7aa0; }
+.grid-albumes.grid-resultados { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
 
 /* --- detalle de álbum --- */
 #vista-album-detalle .tarjeta { max-height: none; }
@@ -934,6 +981,9 @@ html, body {
 <body>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <div id="fondo"></div>
   <div class="runas-lateral izq"></div>
@@ -1055,10 +1105,18 @@ html, body {
         <!-- ---- álbumes ---- -->
         <div id="vista-albumes-musica" class="vista-musica">
           <div id="cabecera-albumes">
-            <input id="buscador-albumes" type="text" placeholder="Buscar álbum o artista…" />
+            <input id="buscador-albumes" type="text" placeholder="Buscar álbumes, canciones o artistas…" />
             <span id="contador-albumes" class="contador-albumes oculto"></span>
           </div>
-          <div id="grid-albumes" class="grid-albumes"></div>
+          <div id="resultados-busqueda-musica" class="oculto"></div>
+          <div id="contenedor-grid-albumes">
+            <div id="grid-albumes" class="grid-albumes"></div>
+            <div id="paginador-albumes" class="paginador oculto">
+              <button id="btn-pagina-anterior" class="secundario" type="button">‹ Anterior</button>
+              <span id="indicador-pagina"></span>
+              <button id="btn-pagina-siguiente" class="secundario" type="button">Siguiente ›</button>
+            </div>
+          </div>
         </div>
 
         <!-- ---- artistas ---- -->
@@ -1238,7 +1296,7 @@ html, body {
       <div class="agarradera-tarjeta"></div>
       <h2>Ajustes</h2>
       <label>Modelo
-        <input id="input-modelo" type="text" placeholder="nousresearch/hermes-4-70b" />
+        <input id="input-modelo" type="text" placeholder="openrouter/free" />
       </label>
       <label class="fila-check">
         <input id="input-voz-activa" type="checkbox" checked />
@@ -1295,9 +1353,14 @@ html, body {
   </main>
 
   <footer id="barra-entrada">
-    <button id="btn-mic" aria-label="Micrófono">🎙</button>
-    <input id="input-texto" type="text" placeholder="Escríbele a Gyan..." autocomplete="off" />
-    <button id="btn-enviar" aria-label="Enviar">➤</button>
+    <div id="chip-adjunto-chat" class="oculto"></div>
+    <div id="fila-entrada-texto">
+      <button id="btn-mic" aria-label="Micrófono">🎙</button>
+      <button id="btn-adjuntar" aria-label="Adjuntar archivo">📎</button>
+      <input id="input-archivo-chat" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg" hidden />
+      <input id="input-texto" type="text" placeholder="Escríbele a Gyan..." autocomplete="off" />
+      <button id="btn-enviar" aria-label="Enviar">➤</button>
+    </div>
   </footer>
 
   <audio id="audio-elemento" playsinline preload="metadata"></audio>
@@ -1373,12 +1436,12 @@ let doctrina = Almacen.cargar("gyan_doctrina", { ...DOCTRINA_BASE });
 // de forma indebida, hay que rotarlas (generar unas nuevas) desde
 // OpenRouter / Fish Audio / Cloudflare.
 const _cfg = JSON.parse(atob(
-  "eyJhcGlLZXkiOiAic2stb3ItdjEtMTc0ZWU0NmE2YzAwMTYzZjhiMGM0ZmYyZWQ2MjRhNWY0NWRjYTRhYjc4NDBhZWY3NTA2OTA1OGQzZWJlYmY4ZiIsICJmaXNoQXBpS2V5IjogInNrLWZpc2gtbThMWV9xS0pSckJXSFVnZFl5aVFCcDI5UDctMXJIWmV3UUJsZ24ycm9TLWMiLCAiZmlzaFByb3h5IjogImh0dHBzOi8vZ3lhbi5uZW5pdG9zMjAxOC53b3JrZXJzLmRldiIsICJmaXNoVm96IjogIjQ4N2VkOTk4YThiMTRiMWE5MzdlNDVjNDBmNjJlNjI3IiwgImFwaU11c2ljYVVybCI6ICJodHRwczovL2d5YW4tbXVzaWMtYXBpLm5lbml0b3MyMDE4LndvcmtlcnMuZGV2In0="
+  "eyJhcGlLZXkiOiAic2stb3ItdjEtMjkxNTY4NjIyOTU3YTkxOGY0YjZiNmY2MjcyYTY4ZTNjOTk1NGNhMjU1YzNiYmRkYWFkYmRhNTRjMWJiOTIxMyIsICJmaXNoQXBpS2V5IjogInNrLWZpc2gtbThMWV9xS0pSckJXSFVnZFl5aVFCcDI5UDctMXJIWmV3UUJsZ24ycm9TLWMiLCAiZmlzaFByb3h5IjogImh0dHBzOi8vZ3lhbi5uZW5pdG9zMjAxOC53b3JrZXJzLmRldiIsICJmaXNoVm96IjogIjQ4N2VkOTk4YThiMTRiMWE5MzdlNDVjNDBmNjJlNjI3IiwgImFwaU11c2ljYVVybCI6ICJodHRwczovL2d5YW4tbXVzaWMtYXBpLm5lbml0b3MyMDE4LndvcmtlcnMuZGV2In0="
 ));
 
 let ajustes = Almacen.cargar("gyan_ajustes", {
   apiKey: _cfg.apiKey,
-  modelo: "nousresearch/hermes-4-70b",
+  modelo: "openrouter/free",
   vozActiva: true,
   fishApiKey: _cfg.fishApiKey,
   fishVoz: _cfg.fishVoz,
@@ -1484,14 +1547,17 @@ Pensamiento interno reciente: ${reportePlasticidad || "Mis ideales se mantienen 
 ${directrizAnimo}`;
 }
 
-async function enviarMensaje(mensaje) {
+async function enviarMensaje(mensaje, adjunto = null) {
   if (!ajustes.apiKey) {
     agregarLinea("sistema", "Necesitas una API Key de OpenRouter. Ábrela en Ajustes (⚙).");
     abrirAjustes();
     return;
   }
 
-  agregarLinea("usuario", mensaje);
+  const lineaVisibleUsuario = adjunto
+    ? `📎 ${adjunto.nombre}${mensaje ? "\n" + mensaje : ""}`
+    : mensaje;
+  agregarLinea("usuario", lineaVisibleUsuario);
   mostrarManoPensativa();
   const idBurbuja = agregarLinea("gyan", "…", true);
   const divBurbuja = document.getElementById(idBurbuja);
@@ -1501,10 +1567,28 @@ async function enviarMensaje(mensaje) {
   const reportePlasticidad = evaluarYModificar(mensaje);
   const systemPrompt = construirPromptSistema(directrizAnimo, reportePlasticidad);
 
+  // si hay un archivo adjunto, se arma el contenido del mensaje del usuario
+  // con el texto extraído (PDF/Word/PowerPoint) o como imagen (para modelos
+  // con visión); el historial guarda solo lo que el usuario tipeó, para no
+  // inflar la conversación con el contenido completo del archivo en cada turno
+  let contenidoUsuario = mensaje;
+  if (adjunto && adjunto.tipoContenido === "texto") {
+    const LIMITE = 12000;
+    const textoRecortado = adjunto.texto.length > LIMITE
+      ? adjunto.texto.slice(0, LIMITE) + "\n[...contenido recortado por longitud...]"
+      : adjunto.texto;
+    contenidoUsuario = `El usuario adjuntó el archivo "${adjunto.nombre}". Este es su contenido:\n"""\n${textoRecortado}\n"""\n\n${mensaje || "Ayudame con este archivo."}`;
+  } else if (adjunto && adjunto.tipoContenido === "imagen") {
+    contenidoUsuario = [
+      { type: "text", text: mensaje || `El usuario adjuntó la imagen "${adjunto.nombre}". Describila y ayudalo con lo que necesite.` },
+      { type: "image_url", image_url: { url: adjunto.dataUrl } }
+    ];
+  }
+
   const mensajesLLM = [
     { role: "system", content: systemPrompt },
     ...historialChat,
-    { role: "user", content: mensaje }
+    { role: "user", content: contenidoUsuario }
   ];
 
   let respuestaCompleta = "";
@@ -1518,7 +1602,7 @@ async function enviarMensaje(mensaje) {
         "X-Title": "DIAR System Gyan"
       },
       body: JSON.stringify({
-        model: ajustes.modelo || "nousresearch/hermes-4-70b",
+        model: ajustes.modelo || "openrouter/free",
         messages: mensajesLLM,
         stream: true,
         temperature: 0.75,
@@ -1526,7 +1610,17 @@ async function enviarMensaje(mensaje) {
       })
     });
 
-    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok || !res.body) {
+      let detalle = `HTTP ${res.status}`;
+      try {
+        const cuerpoError = await res.json();
+        if (cuerpoError?.error?.message) detalle = cuerpoError.error.message;
+      } catch { /* la respuesta de error no era JSON válido */ }
+      if (res.status === 404) {
+        detalle += ` — probablemente el modelo "${ajustes.modelo || "openrouter/free"}" configurado en Ajustes no existe o ya no está disponible en OpenRouter (no es un problema de conexión ni de la API Key).`;
+      }
+      throw new Error(detalle);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
@@ -1552,7 +1646,7 @@ async function enviarMensaje(mensaje) {
       }
     }
 
-    historialChat.push({ role: "user", content: mensaje });
+    historialChat.push({ role: "user", content: adjunto ? lineaVisibleUsuario : mensaje });
     historialChat.push({ role: "assistant", content: respuestaCompleta });
     if (historialChat.length > 10) historialChat = historialChat.slice(-10);
     guardarEstado();
@@ -1561,7 +1655,11 @@ async function enviarMensaje(mensaje) {
     if (ajustes.vozActiva) hablar(respuestaCompleta);
 
   } catch (e) {
-    actualizarLinea(idBurbuja, `[ERROR DE ENLACE EXTERNO]: Revisa tu conexión o tu API Key. Detalle: ${e.message}`);
+    const esErrorDeRed = e instanceof TypeError; // fetch falla así cuando no hay conexión o hay bloqueo CORS
+    const mensajeError = esErrorDeRed
+      ? `No se pudo conectar con OpenRouter. Revisá tu conexión a internet. Detalle: ${e.message}`
+      : e.message;
+    actualizarLinea(idBurbuja, `[ERROR DE ENLACE EXTERNO]: ${mensajeError}`);
     detenerAnimacionPensando();
     ocultarManos(600);
   }
@@ -1899,7 +1997,7 @@ function abrirAjustes() {
 document.getElementById("btn-ajustes").addEventListener("click", abrirAjustes);
 document.getElementById("btn-cerrar-ajustes").addEventListener("click", () => panelAjustes.classList.add("oculto"));
 document.getElementById("btn-guardar-ajustes").addEventListener("click", () => {
-  ajustes.modelo = document.getElementById("input-modelo").value.trim() || "nousresearch/hermes-4-70b";
+  ajustes.modelo = document.getElementById("input-modelo").value.trim() || "openrouter/free";
   ajustes.vozActiva = document.getElementById("input-voz-activa").checked;
   ajustes.fishVoz = document.getElementById("input-fish-voz").value.trim();
   Almacen.guardar("gyan_ajustes", ajustes);
@@ -1987,12 +2085,120 @@ setInterval(actualizarReloj, 1000);
 const inputTexto = document.getElementById("input-texto");
 function manejarEnvio() {
   const texto = inputTexto.value.trim();
-  if (!texto) return;
+  if (!texto && !archivoAdjuntoChat) return;
   inputTexto.value = "";
-  enviarMensaje(texto);
+  const adjunto = archivoAdjuntoChat;
+  archivoAdjuntoChat = null;
+  pintarChipAdjunto();
+  enviarMensaje(texto, adjunto);
 }
 document.getElementById("btn-enviar").addEventListener("click", manejarEnvio);
 inputTexto.addEventListener("keydown", e => { if (e.key === "Enter") manejarEnvio(); });
+
+// ---------------------------------------------------------------------
+// ARCHIVOS ADJUNTOS AL CHAT — para que Gyan pueda leer y ayudar con PDF,
+// Word, PowerPoint e imágenes que el usuario adjunta a la conversación
+// (se extrae el contenido en el navegador, nunca se sube a ningún
+// servidor propio: solo viaja, junto al mensaje, a la API del modelo).
+// ---------------------------------------------------------------------
+let archivoAdjuntoChat = null; // { nombre, tipoContenido: 'texto'|'imagen', texto?, dataUrl? }
+
+document.getElementById("btn-adjuntar").addEventListener("click", () => {
+  document.getElementById("input-archivo-chat").click();
+});
+document.getElementById("input-archivo-chat").addEventListener("change", async (e) => {
+  const archivo = e.target.files[0];
+  e.target.value = "";
+  if (archivo) await procesarArchivoAdjuntoChat(archivo);
+});
+
+async function procesarArchivoAdjuntoChat(archivo) {
+  const chip = document.getElementById("chip-adjunto-chat");
+  chip.classList.remove("oculto");
+  chip.innerHTML = `<span>📎 Leyendo ${escaparHtml(archivo.name)}…</span>`;
+  const nombre = archivo.name.toLowerCase();
+  const tipo = archivo.type || "";
+  try {
+    if (tipo.startsWith("image/") || /\.(png|jpe?g)$/.test(nombre)) {
+      const dataUrl = await leerArchivoComoDataUrl(archivo);
+      archivoAdjuntoChat = { nombre: archivo.name, tipoContenido: "imagen", dataUrl };
+    } else if (tipo === "application/pdf" || nombre.endsWith(".pdf")) {
+      const texto = await extraerTextoPdf(archivo);
+      archivoAdjuntoChat = { nombre: archivo.name, tipoContenido: "texto", texto };
+    } else if (nombre.endsWith(".docx")) {
+      const buffer = await archivo.arrayBuffer();
+      const resultado = await mammoth.extractRawText({ arrayBuffer: buffer });
+      archivoAdjuntoChat = { nombre: archivo.name, tipoContenido: "texto", texto: resultado.value };
+    } else if (nombre.endsWith(".pptx")) {
+      const texto = await extraerTextoPptx(archivo);
+      archivoAdjuntoChat = { nombre: archivo.name, tipoContenido: "texto", texto };
+    } else if (nombre.endsWith(".doc") || nombre.endsWith(".ppt")) {
+      throw new Error("los .doc/.ppt viejos no se pueden leer — convertilo a .docx/.pptx");
+    } else {
+      throw new Error("ese tipo de archivo todavía no lo sé leer");
+    }
+    pintarChipAdjunto();
+  } catch (err) {
+    archivoAdjuntoChat = null;
+    chip.classList.add("oculto");
+    chip.innerHTML = "";
+    agregarLinea("sistema", `No pude leer "${archivo.name}": ${err.message}`);
+  }
+}
+
+function pintarChipAdjunto() {
+  const chip = document.getElementById("chip-adjunto-chat");
+  if (!archivoAdjuntoChat) { chip.classList.add("oculto"); chip.innerHTML = ""; return; }
+  chip.classList.remove("oculto");
+  chip.innerHTML = `<span>📎 ${escaparHtml(archivoAdjuntoChat.nombre)}</span><button id="btn-quitar-adjunto-chat" type="button" aria-label="Quitar adjunto">✕</button>`;
+  document.getElementById("btn-quitar-adjunto-chat").addEventListener("click", () => {
+    archivoAdjuntoChat = null;
+    pintarChipAdjunto();
+  });
+}
+
+function leerArchivoComoDataUrl(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve(lector.result);
+    lector.onerror = () => reject(new Error("no se pudo leer la imagen"));
+    lector.readAsDataURL(archivo);
+  });
+}
+
+async function extraerTextoPdf(archivo) {
+  if (typeof pdfjsLib === "undefined") throw new Error("el lector de PDF no cargó (revisá tu conexión)");
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  const buffer = await archivo.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let texto = "";
+  const maxPaginas = Math.min(pdf.numPages, 40);
+  for (let i = 1; i <= maxPaginas; i++) {
+    const pagina = await pdf.getPage(i);
+    const contenido = await pagina.getTextContent();
+    texto += contenido.items.map(it => it.str).join(" ") + "\n\n";
+  }
+  if (pdf.numPages > maxPaginas) texto += `[...documento truncado: se leyeron las primeras ${maxPaginas} de ${pdf.numPages} páginas...]`;
+  return texto.trim() || "(el PDF no tiene texto legible — parece ser un escaneo de imágenes)";
+}
+
+async function extraerTextoPptx(archivo) {
+  if (typeof JSZip === "undefined") throw new Error("el lector de PowerPoint no cargó (revisá tu conexión)");
+  const buffer = await archivo.arrayBuffer();
+  const zip = await JSZip.loadAsync(buffer);
+  const rutasSlides = Object.keys(zip.files)
+    .filter(ruta => /^ppt\/slides\/slide\d+\.xml$/.test(ruta))
+    .sort((a, b) => Number(a.match(/slide(\d+)\.xml/)[1]) - Number(b.match(/slide(\d+)\.xml/)[1]));
+  let texto = "";
+  for (let i = 0; i < rutasSlides.length; i++) {
+    const xml = await zip.files[rutasSlides[i]].async("text");
+    const fragmentos = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(m => m[1]);
+    texto += `[Diapositiva ${i + 1}]\n${fragmentos.join(" ")}\n\n`;
+  }
+  return texto.trim() || "(la presentación no tiene texto legible)";
+}
 
 // ---------------------------------------------------------------------
 // RECONOCIMIENTO DE VOZ (puerto de escuchar_microfono_thread, vía Web
@@ -2497,27 +2703,86 @@ function cambiarTabMusica(nombre) {
 document.querySelectorAll(".tab-musica").forEach(btn => btn.addEventListener("click", () => cambiarTabMusica(btn.dataset.vista)));
 
 // ---- álbumes ----
+let cacheAlbumesTodos = null; // colección completa de álbumes (para paginar/buscar sin volver a pedirla)
+async function obtenerTodosLosAlbumes(forzar = false) {
+  if (cacheAlbumesTodos && !forzar) return cacheAlbumesTodos;
+  // porPagina alto para traer la colección completa de una sola vez (antes se
+  // pedía sin este parámetro y la API sólo devolvía la primera página).
+  const datos = await apiMusica("/api/albumes?porPagina=1000");
+  cacheAlbumesTodos = datos.albumes || [];
+  return cacheAlbumesTodos;
+}
+// se llama después de cualquier alta/baja/edición en Admin para que álbumes,
+// artistas, canciones y búsqueda vuelvan a reflejar la biblioteca real
+function invalidarCachesMusica() {
+  cachePorMezclarTodo = null;
+  cacheAlbumesTodos = null;
+}
+
+const ALBUMES_POR_PAGINA = 18;
+let paginaAlbumesActual = 1;
+
 async function cargarAlbumes(buscar = "") {
   const grid = document.getElementById("grid-albumes");
   const contador = document.getElementById("contador-albumes");
+  const contenedorGrid = document.getElementById("contenedor-grid-albumes");
+  const resultadosBusqueda = document.getElementById("resultados-busqueda-musica");
+  const paginador = document.getElementById("paginador-albumes");
+  const texto = buscar.trim();
+
+  if (texto) {
+    contenedorGrid.classList.add("oculto");
+    paginador.classList.add("oculto");
+    contador.classList.add("oculto");
+    resultadosBusqueda.classList.remove("oculto");
+    await mostrarBusquedaGlobalMusica(texto);
+    return;
+  }
+
+  resultadosBusqueda.classList.add("oculto");
+  contenedorGrid.classList.remove("oculto");
   grid.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
   contador.classList.add("oculto");
+  paginador.classList.add("oculto");
   try {
-    // porPagina alto para traer la colección completa de una sola vez (antes se
-    // pedía sin este parámetro y la API sólo devolvía la primera página).
-    const parametros = new URLSearchParams({ porPagina: "1000" });
-    if (buscar) parametros.set("buscar", buscar);
-    const datos = await apiMusica("/api/albumes?" + parametros.toString());
-    pintarGridAlbumes(datos.albumes);
-    if (datos.albumes && datos.albumes.length > 0) {
-      const cantidad = datos.albumes.length;
-      contador.textContent = `${cantidad} álbum${cantidad === 1 ? "" : "es"}`;
+    const albumes = await obtenerTodosLosAlbumes();
+    paginaAlbumesActual = 1;
+    pintarPaginaAlbumesActual(albumes);
+    if (albumes.length > 0) {
+      contador.textContent = `${albumes.length} álbum${albumes.length === 1 ? "" : "es"}`;
       contador.classList.remove("oculto");
     }
   } catch (e) {
     grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
 }
+
+function pintarPaginaAlbumesActual(albumes) {
+  const paginador = document.getElementById("paginador-albumes");
+  const totalPaginas = Math.max(1, Math.ceil(albumes.length / ALBUMES_POR_PAGINA));
+  paginaAlbumesActual = Math.min(Math.max(1, paginaAlbumesActual), totalPaginas);
+  const inicio = (paginaAlbumesActual - 1) * ALBUMES_POR_PAGINA;
+  pintarGridAlbumes(albumes.slice(inicio, inicio + ALBUMES_POR_PAGINA));
+
+  if (albumes.length > ALBUMES_POR_PAGINA) {
+    paginador.classList.remove("oculto");
+    document.getElementById("indicador-pagina").textContent = `Página ${paginaAlbumesActual} de ${totalPaginas}`;
+    document.getElementById("btn-pagina-anterior").disabled = paginaAlbumesActual <= 1;
+    document.getElementById("btn-pagina-siguiente").disabled = paginaAlbumesActual >= totalPaginas;
+  } else {
+    paginador.classList.add("oculto");
+  }
+}
+document.getElementById("btn-pagina-anterior").addEventListener("click", async () => {
+  paginaAlbumesActual--;
+  pintarPaginaAlbumesActual(await obtenerTodosLosAlbumes());
+  document.getElementById("contenedor-grid-albumes").scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+document.getElementById("btn-pagina-siguiente").addEventListener("click", async () => {
+  paginaAlbumesActual++;
+  pintarPaginaAlbumesActual(await obtenerTodosLosAlbumes());
+  document.getElementById("contenedor-grid-albumes").scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
 
 // ---- artistas (agrupados a partir de los álbumes) ----
 let cacheArtistasFotos = null; // Map(nombreNormalizado -> { id, nombre, clave_foto })
@@ -2529,54 +2794,61 @@ async function obtenerMapaArtistasFotos(forzar = false) {
   cacheArtistasFotos = mapa;
   return mapa;
 }
+function agruparAlbumesPorArtista(albumes) {
+  const porArtista = new Map();
+  albumes.forEach(a => {
+    if (!porArtista.has(a.artista)) porArtista.set(a.artista, []);
+    porArtista.get(a.artista).push(a);
+  });
+  return Array.from(porArtista.entries())
+    .map(([nombre, albumesDelArtista]) => ({ nombre, albumes: albumesDelArtista }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+function crearItemArtista(nombreArtista, cantidadAlbumes, mapaFotos, claseExtra = "item-artista") {
+  const item = document.createElement("button");
+  item.className = claseExtra;
+  const fotoArtista = mapaFotos.get(normalizarTitulo(nombreArtista));
+  const avatarHtml = (fotoArtista && fotoArtista.clave_foto)
+    ? `<img class="avatar-artista" src="${ajustes.apiMusicaUrl}/api/foto-artista/${fotoArtista.id}" alt="" loading="lazy" />`
+    : `<div class="avatar-artista">🎤</div>`;
+  item.innerHTML = `
+    ${avatarHtml}
+    <div class="artista-nombre">${escaparHtml(nombreArtista)}</div>
+    <div class="artista-conteo">${cantidadAlbumes} álbum${cantidadAlbumes === 1 ? "" : "es"}</div>
+  `;
+  item.addEventListener("click", () => {
+    cambiarTabMusica("albumes");
+    const buscador = document.getElementById("buscador-albumes");
+    buscador.value = nombreArtista;
+    cargarAlbumes(nombreArtista);
+  });
+  return item;
+}
 async function cargarArtistas() {
   const grid = document.getElementById("grid-artistas");
   grid.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
   try {
-    const [datos, mapaFotos] = await Promise.all([
-      apiMusica("/api/albumes?porPagina=100"),
+    const [albumes, mapaFotos] = await Promise.all([
+      obtenerTodosLosAlbumes(),
       obtenerMapaArtistasFotos().catch(() => new Map()),
     ]);
-    if (datos.albumes.length === 0) {
+    if (albumes.length === 0) {
       grid.innerHTML = '<div class="estado-vacio-musica">Todavía no hay artistas cargados.</div>';
       return;
     }
-    const porArtista = new Map();
-    datos.albumes.forEach(a => {
-      if (!porArtista.has(a.artista)) porArtista.set(a.artista, []);
-      porArtista.get(a.artista).push(a);
-    });
-    const artistas = Array.from(porArtista.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
+    const artistas = agruparAlbumesPorArtista(albumes);
     grid.innerHTML = "";
-    artistas.forEach(([nombreArtista, albumesDelArtista]) => {
-      const item = document.createElement("button");
-      item.className = "item-artista";
-      const fotoArtista = mapaFotos.get(normalizarTitulo(nombreArtista));
-      const avatarHtml = (fotoArtista && fotoArtista.clave_foto)
-        ? `<img class="avatar-artista" src="${ajustes.apiMusicaUrl}/api/foto-artista/${fotoArtista.id}" alt="" loading="lazy" />`
-        : `<div class="avatar-artista">🎤</div>`;
-      item.innerHTML = `
-        ${avatarHtml}
-        <div class="artista-nombre">${escaparHtml(nombreArtista)}</div>
-        <div class="artista-conteo">${albumesDelArtista.length} álbum${albumesDelArtista.length === 1 ? "" : "es"}</div>
-      `;
-      item.addEventListener("click", () => {
-        cambiarTabMusica("albumes");
-        const buscador = document.getElementById("buscador-albumes");
-        buscador.value = nombreArtista;
-        cargarAlbumes(nombreArtista);
-      });
-      grid.appendChild(item);
+    artistas.forEach(({ nombre, albumes: albumesDelArtista }) => {
+      grid.appendChild(crearItemArtista(nombre, albumesDelArtista.length, mapaFotos));
     });
   } catch (e) {
     grid.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
 }
-function pintarGridAlbumes(albumes) {
-  const grid = document.getElementById("grid-albumes");
+function pintarGridAlbumes(albumes, grid = document.getElementById("grid-albumes"), mensajeVacio = "No se encontraron álbumes.") {
   grid.innerHTML = "";
   if (!albumes || albumes.length === 0) {
-    grid.innerHTML = '<div class="estado-vacio-musica">No se encontraron álbumes.</div>';
+    grid.innerHTML = `<div class="estado-vacio-musica">${mensajeVacio}</div>`;
     return;
   }
   albumes.forEach((album, indice) => {
@@ -2592,6 +2864,67 @@ function pintarGridAlbumes(albumes) {
     grid.appendChild(btn);
   });
 }
+
+// ---- búsqueda unificada estilo Spotify: álbumes + canciones + artistas ----
+function normalizarBusqueda(texto) {
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+async function mostrarBusquedaGlobalMusica(texto) {
+  const contenedor = document.getElementById("resultados-busqueda-musica");
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Buscando…</div>';
+  const q = normalizarBusqueda(texto);
+  try {
+    const [albumes, canciones, mapaFotos] = await Promise.all([
+      obtenerTodosLosAlbumes(),
+      obtenerTodasLasCanciones(),
+      obtenerMapaArtistasFotos().catch(() => new Map()),
+    ]);
+    const albumesCoincidentes = albumes.filter(a =>
+      normalizarBusqueda(a.titulo).includes(q) || normalizarBusqueda(a.artista).includes(q));
+    const cancionesCoincidentes = canciones.filter(c =>
+      normalizarBusqueda(c.titulo).includes(q) || normalizarBusqueda(c.artista).includes(q));
+    const artistasCoincidentes = agruparAlbumesPorArtista(albumes)
+      .filter(a => normalizarBusqueda(a.nombre).includes(q));
+
+    contenedor.innerHTML = "";
+    if (albumesCoincidentes.length === 0 && cancionesCoincidentes.length === 0 && artistasCoincidentes.length === 0) {
+      contenedor.innerHTML = '<div class="estado-vacio-musica">No se encontraron resultados.</div>';
+      return;
+    }
+
+    if (artistasCoincidentes.length > 0) {
+      const seccion = document.createElement("div");
+      seccion.className = "seccion-resultado-busqueda";
+      seccion.innerHTML = '<h3 class="titulo-seccion-resultado">Artistas</h3>';
+      artistasCoincidentes.slice(0, 6).forEach(({ nombre, albumes: albumesDelArtista }) => {
+        seccion.appendChild(crearItemArtista(nombre, albumesDelArtista.length, mapaFotos, "item-artista fila-artista-resultado"));
+      });
+      contenedor.appendChild(seccion);
+    }
+
+    if (albumesCoincidentes.length > 0) {
+      const seccion = document.createElement("div");
+      seccion.className = "seccion-resultado-busqueda";
+      seccion.innerHTML = '<h3 class="titulo-seccion-resultado">Álbumes</h3><div class="grid-albumes grid-resultados"></div>';
+      pintarGridAlbumes(albumesCoincidentes.slice(0, 12), seccion.querySelector(".grid-resultados"));
+      contenedor.appendChild(seccion);
+    }
+
+    if (cancionesCoincidentes.length > 0) {
+      const seccion = document.createElement("div");
+      seccion.className = "seccion-resultado-busqueda";
+      seccion.innerHTML = '<h3 class="titulo-seccion-resultado">Canciones</h3>';
+      const listaCanciones = cancionesCoincidentes.slice(0, 15);
+      listaCanciones.forEach((cancion, indice) => {
+        seccion.appendChild(crearFilaCancion(cancion, listaCanciones, indice));
+      });
+      contenedor.appendChild(seccion);
+    }
+  } catch (e) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+}
+
 document.getElementById("buscador-albumes").addEventListener("input", (e) => {
   clearTimeout(temporizadorBusquedaAlbumes);
   const valor = e.target.value;
@@ -3004,7 +3337,7 @@ document.getElementById("btn-admin-fusionar-albumes").addEventListener("click", 
       body: JSON.stringify({ idsOrigen }),
     });
     aviso.textContent = `Listo: se movieron ${datos.cancionesMovidas} canción(es) y se borraron ${datos.albumesEliminados} álbum(es).`;
-    cachePorMezclarTodo = null;
+    invalidarCachesMusica();
     llenarSelectAlbumes("admin-fusion-destino-select", "No hay álbumes todavía");
     llenarSelectAlbumes("admin-fusion-origen-select", "No hay álbumes todavía");
     llenarSelectAlbumes("admin-editar-album-select", "No hay álbumes todavía");
@@ -3188,7 +3521,7 @@ document.getElementById("btn-admin-carga-masiva").addEventListener("click", asyn
 
   aviso.textContent = `Listo: ${subidas} canción(es) subida(s)${errores ? `, ${errores} con error` : ""}.`;
   input.value = "";
-  cachePorMezclarTodo = null;
+  invalidarCachesMusica();
   cargarAdmin();
 });
 
@@ -3251,7 +3584,7 @@ async function eliminarCancionEnEdicion(cancionId) {
     cancionesAlbumEnEdicion = cancionesAlbumEnEdicion.filter(c => c.id !== cancionId);
     pintarListaEdicionAlbum();
     aviso.textContent = "Canción eliminada.";
-    cachePorMezclarTodo = null;
+    invalidarCachesMusica();
   } catch (e) {
     aviso.textContent = e.message;
   }
@@ -3277,7 +3610,7 @@ document.getElementById("btn-admin-quitar-duplicados").addEventListener("click",
   cancionesAlbumEnEdicion = cancionesAlbumEnEdicion.filter(c => !aBorrar.includes(c.id));
   pintarListaEdicionAlbum();
   aviso.textContent = `Listo: se borraron ${aBorrar.length} duplicado(s).`;
-  cachePorMezclarTodo = null;
+  invalidarCachesMusica();
 });
 document.getElementById("btn-admin-eliminar-album").addEventListener("click", async () => {
   const albumId = document.getElementById("admin-editar-album-select").value;
@@ -3290,7 +3623,7 @@ document.getElementById("btn-admin-eliminar-album").addEventListener("click", as
     aviso.textContent = "Álbum eliminado.";
     document.getElementById("lista-admin-editar-album").innerHTML = "";
     cancionesAlbumEnEdicion = [];
-    cachePorMezclarTodo = null;
+    invalidarCachesMusica();
     cargarAdmin();
   } catch (e) {
     aviso.textContent = e.message;
@@ -3327,7 +3660,7 @@ document.getElementById("btn-admin-eliminar-todo").addEventListener("click", asy
       fallidos++;
     }
   }
-  cachePorMezclarTodo = null;
+  invalidarCachesMusica();
   cancionesAlbumEnEdicion = [];
   document.getElementById("lista-admin-editar-album").innerHTML = "";
   cargarAdmin();
@@ -3457,9 +3790,28 @@ audioEl.addEventListener("ended", () => {
   audioAnalisis.pause();
   if (colaReproduccion.length === 0) return;
   if (modoRepetir === "una") { reproducirIndiceActualDeCola(); return; }
-  if (modoRepetir === "no" && posicionEnOrden >= ordenReproduccion.length - 1) return;
+  if (modoRepetir === "no" && posicionEnOrden >= ordenReproduccion.length - 1) {
+    continuarConCancionAleatoria();
+    return;
+  }
   avanzarEnCola(1);
 });
+// cuando la cola llega a su fin (sin repetir), en vez de detenerse sigue con
+// una canción al azar de toda la biblioteca, como hace Spotify
+async function continuarConCancionAleatoria() {
+  try {
+    const todas = await obtenerTodasLasCanciones();
+    if (!todas || todas.length === 0) return;
+    const cancionActual = colaReproduccion[indiceColaActual];
+    const candidatas = cancionActual ? todas.filter(c => c.id !== cancionActual.id) : todas;
+    const siguiente = (candidatas.length > 0 ? candidatas : todas)[Math.floor(Math.random() * (candidatas.length > 0 ? candidatas.length : todas.length))];
+    colaReproduccion = colaReproduccion.concat([siguiente]);
+    indiceColaActual = colaReproduccion.length - 1;
+    ordenReproduccion = ordenReproduccion.concat([indiceColaActual]);
+    posicionEnOrden = ordenReproduccion.length - 1;
+    reproducirIndiceActualDeCola();
+  } catch { /* si falla, simplemente se detiene la reproducción */ }
+}
 function fijarVarProgreso(elemento) {
   elemento.style.setProperty("--progreso", `${elemento.value}%`);
 }
