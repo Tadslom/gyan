@@ -1027,6 +1027,40 @@ html, body {
   border: 1px solid var(--tarjeta-borde); border-radius: 10px;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
+/* --- fila que contiene el visualizador ADN y, a su derecha, el CD que
+   "sale" (como si se estuviera reproduciendo) mientras suena una canción --- */
+.fila-visualizador { display: flex; align-items: center; gap: 0; }
+.fila-visualizador #lienzo-adn { flex: 1; min-width: 0; }
+.cd-mini-reproductor {
+  width: 0; height: 64px; flex: none; overflow: hidden;
+  transition: width 0.45s cubic-bezier(.2,.8,.2,1), margin-left 0.45s cubic-bezier(.2,.8,.2,1);
+}
+.cd-mini-reproductor.reproduciendo { width: 54px; margin-left: 8px; }
+.cd-mini-disco-reproductor {
+  position: relative; top: 5px; width: 54px; height: 54px;
+  background-image: var(--cd-imagen-disco);
+  background-repeat: no-repeat; background-size: contain; background-position: center;
+  filter: drop-shadow(0 3px 8px rgba(30, 15, 45, 0.35));
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.cd-mini-reproductor.reproduciendo .cd-mini-disco-reproductor {
+  opacity: 1;
+  animation: girar-disco-mini-reproductor 6s linear infinite;
+}
+.cd-mini-reproductor.pausado .cd-mini-disco-reproductor { animation-play-state: paused; }
+.cd-mini-disco-reproductor.cd-disco-personalizado {
+  border-radius: 50%; background-size: cover;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55), 0 3px 10px rgba(30, 15, 45, 0.35);
+}
+.cd-mini-disco-reproductor.cd-disco-personalizado::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 20%; height: 20%;
+  background: var(--tarjeta-bg); border-radius: 50%; transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px rgba(80, 45, 110, 0.25) inset;
+}
+@keyframes girar-disco-mini-reproductor {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
 /* --- cabecera tipo "hero" para la pestaña de canciones aleatorias --- */
 #cabecera-aleatorio {
@@ -1133,7 +1167,12 @@ html, body {
               </div>
               <button id="btn-favorito-actual" aria-label="Favorito">♡</button>
             </div>
-            <canvas id="lienzo-adn"></canvas>
+            <div class="fila-visualizador">
+              <canvas id="lienzo-adn"></canvas>
+              <div id="cd-mini-reproductor" class="cd-mini-reproductor" aria-hidden="true">
+                <div class="cd-mini-disco-reproductor"></div>
+              </div>
+            </div>
             <input id="barra-progreso" type="range" min="0" max="100" value="0" />
             <div id="tiempos-cancion"><span id="tiempo-actual">0:00</span><span id="tiempo-total">0:00</span></div>
             <div class="fila-controles">
@@ -3169,7 +3208,7 @@ async function abrirAlbum(albumId) {
         <div class="album-titulo">${escaparHtml(album.titulo)}</div>
         <div class="album-artista">${escaparHtml(album.artista)}${album.anio ? " · " + album.anio : ""}</div>
       </div>`;
-    const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl }));
+    const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl, albumId: album.id, claveCd: album.clave_cd }));
     const contenedor = document.getElementById("canciones-album-detalle");
     contenedor.innerHTML = "";
     cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
@@ -3259,7 +3298,7 @@ async function cargarFavoritos() {
       contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no tenés canciones favoritas. Tocá el ♡ en cualquier canción.</div>';
       return;
     }
-    const cola = datos.favoritos.map(f => ({ id: f.id, titulo: f.titulo, albumTitulo: f.album_titulo, artista: f.artista, portadaUrl: f.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${f.album_id}` : null }));
+    const cola = datos.favoritos.map(f => ({ id: f.id, titulo: f.titulo, albumTitulo: f.album_titulo, artista: f.artista, portadaUrl: f.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${f.album_id}` : null, albumId: f.album_id, claveCd: f.clave_cd }));
     cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
   } catch (e) {
     contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
@@ -3275,6 +3314,8 @@ function mapearFilasApiACanciones(filas) {
     albumTitulo: f.album_titulo,
     artista: f.artista,
     portadaUrl: f.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${f.album_id}` : null,
+    albumId: f.album_id,
+    claveCd: f.clave_cd,
   }));
 }
 
@@ -3347,7 +3388,7 @@ async function obtenerTodasLasCanciones() {
     const album = datosAlbumes.albumes[indice];
     const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
     resultado.value.canciones.forEach(c => {
-      todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl });
+      todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl, albumId: album.id, claveCd: album.clave_cd });
     });
   });
   cachePorMezclarTodo = todas;
@@ -3446,7 +3487,7 @@ document.getElementById("btn-crear-playlist").addEventListener("click", async ()
 async function abrirPlaylist(playlistId, nombre) {
   try {
     const datos = await apiMusica(`/api/mis/playlists/${playlistId}/canciones`);
-    const cola = datos.canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: c.album_titulo, artista: c.artista, portadaUrl: c.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${c.album_id}` : null }));
+    const cola = datos.canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: c.album_titulo, artista: c.artista, portadaUrl: c.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${c.album_id}` : null, albumId: c.album_id, claveCd: c.clave_cd }));
     document.getElementById("cabecera-album-detalle").innerHTML = `
       <div class="portada-album vacia">♪</div>
       <div id="info-album-detalle"><div class="album-titulo">${escaparHtml(nombre)}</div><div class="album-artista">Playlist</div></div>`;
@@ -3955,6 +3996,22 @@ function reproducirIndiceActualDeCola() {
   btnFavoritoActual.textContent = favoritosIds.has(cancion.id) ? "♥" : "♡";
   btnFavoritoActual.classList.toggle("activo", favoritosIds.has(cancion.id));
   actualizarMediaSession(cancion);
+  actualizarCdMiniReproductor(cancion);
+}
+
+// si el álbum de la canción tiene un CD personalizado subido, se usa esa foto
+// en el disco que sale al lado del visualizador; si no, queda el disco
+// genérico transparente (var(--cd-imagen-disco)) que ya trae por defecto.
+function actualizarCdMiniReproductor(cancion) {
+  const discoEl = cdMiniReproductor.querySelector(".cd-mini-disco-reproductor");
+  const cdUrl = (cancion.claveCd && cancion.albumId) ? `${ajustes.apiMusicaUrl}/api/cd/${cancion.albumId}` : null;
+  if (cdUrl) {
+    discoEl.style.backgroundImage = `url('${cdUrl}')`;
+    discoEl.classList.add("cd-disco-personalizado");
+  } else {
+    discoEl.style.backgroundImage = "";
+    discoEl.classList.remove("cd-disco-personalizado");
+  }
 }
 
 btnPlayPausa.addEventListener("click", () => {
@@ -3991,15 +4048,22 @@ btnFavoritoActual.addEventListener("click", () => {
   if (cancion) alternarFavorito(cancion.id, btnFavoritoActual);
 });
 
+const cdMiniReproductor = document.getElementById("cd-mini-reproductor");
+
 audioEl.addEventListener("play", () => {
   btnPlayPausa.textContent = "⏸";
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
   sincronizarAnalisis();
+  // el CD "sale" al lado del visualizador y gira mientras suena la canción
+  cdMiniReproductor.classList.add("reproduciendo");
+  cdMiniReproductor.classList.remove("pausado");
 });
 audioEl.addEventListener("pause", () => {
   btnPlayPausa.textContent = "▶";
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
   sincronizarAnalisis();
+  // en pausa el CD se queda afuera pero deja de girar (no vuelve a esconderse)
+  cdMiniReproductor.classList.add("pausado");
 });
 audioEl.addEventListener("ended", () => {
   audioAnalisis.pause();
