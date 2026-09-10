@@ -4435,8 +4435,12 @@ async function cargarDemucs() {
     }
     ortRuntime = ort;
     if (ortRuntime.env && ortRuntime.env.wasm) {
-      ortRuntime.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
       ortRuntime.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.1/dist/";
+      if (crossOriginIsolated) {
+        ortRuntime.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
+      } else {
+        ortRuntime.env.wasm.numThreads = 1; // sin crossOriginIsolated no hay multithreading
+      }
     }
     console.log("[BOCA-DEMUCS] Cargando modelo Demucs (~166MB, primera vez tarda)...");
     demucsSession = await ortRuntime.InferenceSession.create(DEMUCS_MODEL_URL, {
