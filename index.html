@@ -10,7 +10,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Gyan" />
 <meta name="theme-color" content="#2d1941" />
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.1/dist/ort.min.js"></script>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -3996,7 +3995,6 @@ function reproducirIndiceActualDeCola() {
   audioEl.src = `${ajustes.apiMusicaUrl}/api/stream/${cancion.id}`;
   audioEl.play().catch(() => {});
   sincronizarAnalisis();
-  iniciarDeteccionVoz(cancion.id, audioEl.src);
   programarRegistroReproduccion(cancion.id);
   document.getElementById("titulo-cancion").textContent = cancion.titulo;
   document.getElementById("subtitulo-cancion").textContent = `${cancion.artista} · ${cancion.albumTitulo}`;
@@ -4348,26 +4346,8 @@ const imgBocaAbierta = new Image();
 imgBocaAbierta.src = BOCA_ABIERTA_SRC;
 
 let animandoBoca = false;
-let volumenBocaSuavizado = 0;
-let analizadorBoca = null;
-let datosFrecuenciaBoca = null;
-
-// --- Sistema en cascada: espectral + Demucs ---
-// Fallback inmediato: análisis espectral (banda vocal vs total).
-// Mejora async: Demucs ONNX pre-procesa la canción en background;
-// cuando termina, la boca usa su envelope de volumen vocal.
-let vocalEnvelope = null;       // Float32Array: volumen vocal por cada 50ms
-let demucsListo = false;
-let demucsCargado = false;
-let demucsSession = null;
-let demucsProcesandoId = null;  // id de la canción que se está procesando
-let demucsAbort = null;
-let ortRuntime = null; // ONNX Runtime, cacheado tras primera carga
-
-const DEMUCS_MODEL_URL = "https://huggingface.co/StemSplitio/htdemucs-ft-vocals-onnx/resolve/main/htdemucs_ft_vocals_fp16weights.onnx";
-const DEMUCS_SAMPLES = 343980;  // 7.8s a 44100 Hz
-const DEMUCS_STRIDE = Math.floor(DEMUCS_SAMPLES * 0.75); // 25% overlap
-const ENV_MS = 50;               // resolución del envelope: 50ms por valor
+let datosTiempoADN = null; // dominio del tiempo, para medir volumen (RMS)
+let volumenBocaSuavizado = 0; // se suaviza cuadro a cuadro para que no "tiemble"
 
 function ajustarLienzoBoca() {
   const r = lienzoBoca.getBoundingClientRect();
@@ -4377,218 +4357,27 @@ function ajustarLienzoBoca() {
   ctxBoca.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 }
 
-// =====================================================================
-// FALLBACK: Análisis espectral (funciona al instante, sin descargas)
-// =====================================================================
-function calcularVolumenBocaEspectral() {
+// Calcula qué tan fuerte "canta" la canción en este instante (0 = silencio,
+// 1 = volumen máximo) leyendo la forma de onda real del audio (RMS).
+function calcularVolumenBoca() {
+  // misma condición que usa el visualizador ADN para saber si hay datos
+  // reales de audio disponibles (si no, la boca se queda cerrada/quieta)
   if (!(!audioEl.paused && analizadorADN && audioCtxADN && audioCtxADN.state === "running" && !audioAnalisis.paused)) {
     return 0;
   }
-  if (!analizadorBoca) {
-    try {
-      analizadorBoca = audioCtxADN.createAnalyser();
-      analizadorBoca.fftSize = 2048;
-      analizadorBoca.smoothingTimeConstant = 0.5;
-      datosFrecuenciaBoca = new Uint8Array(analizadorBoca.frequencyBinCount);
-      if (!fuenteADN) { analizadorBoca = null; return 0; }
-      fuenteADN.connect(analizadorBoca);
-    } catch (e) {
-      analizadorBoca = null;
-      return 0;
-    }
+  if (!datosTiempoADN || datosTiempoADN.length !== analizadorADN.fftSize) {
+    datosTiempoADN = new Uint8Array(analizadorADN.fftSize);
   }
-  if (!analizadorBoca || !datosFrecuenciaBoca) return 0;
-
-  analizadorBoca.getByteFrequencyData(datosFrecuenciaBoca);
-  const bins = datosFrecuenciaBoca.length;
-  const hzPorBin = audioCtxADN.sampleRate / analizadorBoca.fftSize;
-
-  let energiaTotal = 0;
-  for (let i = 0; i < bins; i++) energiaTotal += datosFrecuenciaBoca[i];
-  if (energiaTotal < 1) return 0;
-
-  const binInicio = Math.max(1, Math.floor(300 / hzPorBin));
-  const binFin = Math.min(bins - 1, Math.ceil(3000 / hzPorBin));
-  let energiaVocal = 0;
-  for (let i = binInicio; i <= binFin; i++) energiaVocal += datosFrecuenciaBoca[i];
-
-  const ratioVocal = energiaVocal / energiaTotal;
+  analizadorADN.getByteTimeDomainData(datosTiempoADN);
   let sumaCuadrados = 0;
-  for (let i = 0; i < bins; i++) {
-    const n = datosFrecuenciaBoca[i] / 255;
-    sumaCuadrados += n * n;
+  for (let i = 0; i < datosTiempoADN.length; i++) {
+    const muestra = (datosTiempoADN[i] - 128) / 128; // -1..1
+    sumaCuadrados += muestra * muestra;
   }
-  const rms = Math.sqrt(sumaCuadrados / bins);
-  return Math.min(1, rms * ratioVocal * 6);
-}
-
-// =====================================================================
-// DEMUCS: Pre-procesamiento en background con modelo ONNX
-// =====================================================================
-async function cargarDemucs() {
-  if (demucsCargado || demucsSession) return;
-  try {
-    console.log("[BOCA-DEMUCS] Verificando ONNX Runtime...");
-    if (typeof ort === "undefined") {
-      console.warn("[BOCA-DEMUCS] ort no disponible globalmente");
-      return;
-    }
-    ortRuntime = ort;
-    if (ortRuntime.env && ortRuntime.env.wasm) {
-      ortRuntime.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.1/dist/";
-      if (crossOriginIsolated) {
-        ortRuntime.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
-      } else {
-        ortRuntime.env.wasm.numThreads = 1; // sin crossOriginIsolated no hay multithreading
-      }
-    }
-    console.log("[BOCA-DEMUCS] Cargando modelo Demucs (~166MB, primera vez tarda)...");
-    demucsSession = await ortRuntime.InferenceSession.create(DEMUCS_MODEL_URL, {
-      executionProviders: ["webgpu", "wasm"],
-      graphOptimizationLevel: "basic"
-    });
-    demucsCargado = true;
-    console.log("[BOCA-DEMUCS] Modelo cargado OK. Inputs:", demucsSession.inputNames, "Outputs:", demucsSession.outputNames);
-  } catch (e) {
-    console.warn("[BOCA-DEMUCS] No se pudo cargar Demucs:", e.message);
-    demucsSession = null;
-  }
-}
-
-async function procesarCancionDemucs(audioUrl, cancionId) {
-  if (!demucsCargado || !demucsSession) return null;
-  if (demucsProcesandoId === cancionId && demucsListo) return vocalEnvelope;
-
-  demucsAbort = new AbortController();
-  demucsProcesandoId = cancionId;
-  demucsListo = false;
-  vocalEnvelope = null;
-
-  try {
-    console.log("[BOCA-DEMUCS] Descargando audio para separar voz...");
-    const resp = await fetch(audioUrl, { signal: demucsAbort.signal });
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const arrayBuf = await resp.arrayBuffer();
-
-    console.log("[BOCA-DEMUCS] Decodificando audio...");
-    const tmpCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 1, 44100);
-    const audioBuf = await tmpCtx.decodeAudioData(arrayBuf);
-    const totalSamples = audioBuf.length;
-    const left = audioBuf.getChannelData(0);
-    const right = audioBuf.numberOfChannels > 1 ? audioBuf.getChannelData(1) : left;
-
-    console.log("[BOCA-DEMUCS] Procesando", (totalSamples / 44100).toFixed(1), "s de audio con Demucs...");
-    const vocalBuffer = new Float32Array(totalSamples);
-    const weightBuffer = new Float32Array(totalSamples);
-    const chunkBuf = new Float32Array(DEMUCS_SAMPLES * 2);
-
-    let chunkIdx = 0;
-    const totalChunks = Math.ceil((totalSamples - DEMUCS_SAMPLES) / DEMUCS_STRIDE) + 1;
-
-    for (let start = 0; start < totalSamples; start += DEMUCS_STRIDE) {
-      if (demucsAbort.signal.aborted) { console.log("[BOCA-DEMUCS] Abortado"); return null; }
-
-      const end = Math.min(start + DEMUCS_SAMPLES, totalSamples);
-      const len = end - start;
-      chunkBuf.fill(0);
-      for (let c = 0; c < 2; c++) {
-        const ch = c === 0 ? left : right;
-        for (let i = 0; i < len; i++) chunkBuf[c * DEMUCS_SAMPLES + i] = ch[start + i];
-      }
-
-      const tensor = new ortRuntime.Tensor("float32", chunkBuf, [1, 2, DEMUCS_SAMPLES]);
-      const feeds = {};
-      feeds[demucsSession.inputNames[0]] = tensor;
-
-      const results = await demucsSession.run(feeds);
-      const stems = results[demucsSession.outputNames[0]];
-      const stemData = stems.data;
-      // htdemucs output shape: [1, 4, 2, 343980] — 4 stems × 2 channels × samples
-      // Vocals = stem index 3, stereo: avg both channels
-      const vOff = 3 * 2 * DEMUCS_SAMPLES;
-
-      for (let i = 0; i < len; i++) {
-        const v = (stemData[vOff + i] + stemData[vOff + DEMUCS_SAMPLES + i]) / 2;
-        const w = Math.min((i < DEMUCS_STRIDE ? i / DEMUCS_STRIDE : (len - i) / DEMUCS_STRIDE), 1);
-        vocalBuffer[start + i] += v * w;
-        weightBuffer[start + i] += w;
-      }
-
-      chunkIdx++;
-      if (chunkIdx % 5 === 0) console.log("[BOCA-DEMUCS] Chunk", chunkIdx, "/", totalChunks);
-    }
-
-    for (let i = 0; i < totalSamples; i++) {
-      if (weightBuffer[i] > 0) vocalBuffer[i] /= weightBuffer[i];
-    }
-
-    console.log("[BOCA-DEMUCS] Computando envelope de volumen vocal...");
-    const msPerSample = 1000 / 44100;
-    const envLen = Math.ceil((totalSamples / 44100) * (1000 / ENV_MS));
-    vocalEnvelope = new Float32Array(envLen);
-    const windowSamples = Math.floor(ENV_MS / msPerSample);
-
-    for (let e = 0; e < envLen; e++) {
-      const sStart = Math.floor(e * windowSamples);
-      const sEnd = Math.min(sStart + windowSamples, totalSamples);
-      let sum = 0;
-      for (let s = sStart; s < sEnd; s++) sum += vocalBuffer[s] * vocalBuffer[s];
-      vocalEnvelope[e] = Math.sqrt(sum / Math.max(1, sEnd - sStart));
-    }
-
-    // Normalizar envelope al rango 0–1
-    let maxVol = 0;
-    for (let i = 0; i < vocalEnvelope.length; i++) if (vocalEnvelope[i] > maxVol) maxVol = vocalEnvelope[i];
-    if (maxVol > 0) for (let i = 0; i < vocalEnvelope.length; i++) vocalEnvelope[i] /= maxVol;
-
-    demucsListo = true;
-    console.log("[BOCA-DEMUCS] ¡Listo! Envelope de", vocalEnvelope.length, "valores. La boca ahora usa voz real.");
-  } catch (e) {
-    if (e.name !== "AbortError") console.warn("[BOCA-DEMUCS] Error:", e.message);
-    vocalEnvelope = null;
-    demucsListo = false;
-  }
-  return vocalEnvelope;
-}
-
-function calcularVolumenBocaDemucs() {
-  if (!demucsListo || !vocalEnvelope || !audioEl.src) return -1; // -1 = no disponible
-  const t = audioEl.currentTime;
-  const idx = Math.floor((t * 1000) / ENV_MS);
-  if (idx < 0 || idx >= vocalEnvelope.length) return 0;
-  return Math.min(1, vocalEnvelope[idx] * 3.5);
-}
-
-// =====================================================================
-// Punto de entrada: cascade (Demucs → espectral)
-// =====================================================================
-function calcularVolumenBoca() {
-  const demucsVol = calcularVolumenBocaDemucs();
-  if (demucsVol >= 0) return demucsVol;
-  return calcularVolumenBocaEspectral();
-}
-
-// =====================================================================
-// Trigger: cuando empieza una canción, lanzar Demucs en background
-// =====================================================================
-function iniciarDeteccionVoz(cancionId, audioUrl) {
-  // Si cambió la canción, resetear
-  if (demucsProcesandoId !== cancionId) {
-    demucsListo = false;
-    vocalEnvelope = null;
-    if (demucsAbort) { try { demucsAbort.abort(); } catch {} }
-  }
-  // Lanzar Demucs en background (no bloquea la UI)
-  if (demucsCargado) {
-    procesarCancionDemucs(audioUrl, cancionId);
-  } else {
-    // Cargar modelo + procesar en secuencia
-    cargarDemucs().then(() => {
-      if (demucsSession && demucsProcesandoId !== cancionId) {
-        procesarCancionDemucs(audioUrl, cancionId);
-      }
-    });
-  }
+  const rms = Math.sqrt(sumaCuadrados / datosTiempoADN.length); // ~0..~0.7
+  // Se amplifica un poco porque el RMS típico de música queda bajo;
+  // así la boca sí llega a abrirse del todo en los pasajes fuertes.
+  return Math.min(1, rms * 3.2);
 }
 
 function dibujarBoca() {
@@ -4676,8 +4465,6 @@ let ultimoLogFFT = 0;
 // --- FIN DEBUG TEMPORAL ---
 let audioCtxADN = null, analizadorADN = null, datosFrecuenciaADN = null;
 
-let fuenteADN = null; // MediaElementSource, accesible para rama paralela de la boca
-
 function inicializarAnalizadorAudioSiHaceFalta() {
   if (audioCtxADN) {
     if (audioCtxADN.state === "suspended") audioCtxADN.resume().catch(() => {});
@@ -4689,8 +4476,8 @@ function inicializarAnalizadorAudioSiHaceFalta() {
     analizadorADN.fftSize = 64;
     analizadorADN.smoothingTimeConstant = 0.75;
     datosFrecuenciaADN = new Uint8Array(analizadorADN.frequencyBinCount);
-    fuenteADN = audioCtxADN.createMediaElementSource(audioAnalisis);
-    fuenteADN.connect(analizadorADN);
+    const fuente = audioCtxADN.createMediaElementSource(audioAnalisis);
+    fuente.connect(analizadorADN);
     // A propósito NUNCA se conecta analizadorADN a audioCtxADN.destination:
     // así esta copia queda muda pase lo que pase, tenga o no la etiqueta "muted".
     console.log("[ADN-DEBUG] AudioContext y analizador creados OK, estado inicial:", audioCtxADN.state);
