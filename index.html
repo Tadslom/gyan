@@ -528,6 +528,25 @@ html, body {
 #panel-musica { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.45); z-index: 50; display: flex; align-items: flex-end; }
 #panel-musica.oculto { display: none; }
 #panel-musica .tarjeta { max-height: 88vh; overflow-y: auto; }
+
+/* ================= JYAM ================= */
+#panel-jyam { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.45); z-index: 60; display: flex; align-items: flex-end; }
+#panel-jyam.oculto { display: none; }
+#panel-jyam .tarjeta { max-height: 88vh; overflow-y: auto; }
+.jyam-codigo {
+  font-size: 32px; font-weight: 800; letter-spacing: 4px; text-align: center; color: var(--turquesa);
+  background: rgba(15, 145, 135, 0.08); border-radius: 12px; padding: 14px 8px; margin: 4px 0;
+  user-select: all;
+}
+.jyam-estado-texto { font-size: 13px; color: #6a5a80; text-align: center; }
+.jyam-punto-vivo {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #38d39f;
+  margin-right: 6px; animation: jyam-pulso 1.4s infinite ease-in-out;
+}
+@keyframes jyam-pulso { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.jyam-separador-o { text-align: center; font-size: 12px; color: #b4a6cc; margin: 2px 0; }
+#input-jyam-codigo { text-transform: uppercase; text-align: center; font-size: 20px; letter-spacing: 3px; }
+#aviso-jyam { font-size: 12.5px; color: var(--rojo-apagado); min-height: 1em; text-align: center; }
 .secundario {
   border: 1px solid var(--turquesa); background: #fff; color: var(--turquesa);
   border-radius: 10px; padding: 10px; font-size: 14px; font-weight: 600;
@@ -968,6 +987,18 @@ html, body {
 #reproductor-actual.con-fondo #btn-favorito-actual { color: #ff8b95; }
 #btn-favorito-actual.activo { color: var(--rojo-apagado); }
 #reproductor-actual.con-fondo #btn-favorito-actual.activo { color: var(--rojo-apagado); }
+#btn-jyam {
+  background: none; border: none; font-size: 19px; color: #8a7aa0; padding: 6px; flex: none;
+  border-radius: 50%; transition: background 0.15s, transform 0.1s, color 0.15s; position: relative;
+}
+#btn-jyam:active { transform: scale(0.85); }
+#btn-jyam.activo { color: var(--turquesa); }
+#reproductor-actual.con-fondo #btn-jyam { color: #d8cdee; }
+#reproductor-actual.con-fondo #btn-jyam.activo { color: var(--turquesa); }
+#btn-jyam.activo::after {
+  content: ""; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%;
+  background: #38d39f; box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
+}
 #titulo-cancion { font-size: 15.5px; font-weight: 700; color: var(--morado-oscuro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s ease; }
 #subtitulo-cancion { font-size: 12px; color: #8a7aa0; margin-top: -2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s ease; }
 #tiempos-cancion { display: flex; justify-content: space-between; font-size: 11px; color: #8a7aa0; transition: color 0.3s ease; }
@@ -1181,6 +1212,7 @@ html, body {
                 <div id="titulo-cancion">Sin canción seleccionada</div>
                 <div id="subtitulo-cancion"></div>
               </div>
+              <button id="btn-jyam" aria-label="Jyam">🎉</button>
               <button id="btn-favorito-actual" aria-label="Favorito">♡</button>
             </div>
             <div class="fila-visualizador">
@@ -1373,6 +1405,44 @@ html, body {
       </div>
 
       <button id="btn-cerrar-musica" class="cerrar">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ================= JYAM ================= -->
+  <div id="panel-jyam" class="oculto">
+    <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
+      <h2>Jyam</h2>
+
+      <!-- ---- sin sesión activa: crear o unirse ---- -->
+      <div id="vista-jyam-inicio">
+        <p class="jyam-estado-texto">Escuchá exactamente lo mismo, al mismo tiempo, en varios dispositivos.</p>
+        <div class="fila-botones">
+          <button id="btn-jyam-crear" class="secundario">Crear un Jyam</button>
+        </div>
+        <div class="jyam-separador-o">— o —</div>
+        <label>Código de sala
+          <input id="input-jyam-codigo" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" />
+        </label>
+        <div class="fila-botones">
+          <button id="btn-jyam-unirse" class="secundario">Unirme</button>
+        </div>
+        <div id="aviso-jyam"></div>
+      </div>
+
+      <!-- ---- sesión activa (host o invitado) ---- -->
+      <div id="vista-jyam-activo" class="oculto">
+        <p class="jyam-estado-texto"><span class="jyam-punto-vivo"></span><span id="jyam-texto-estado">Conectando…</span></p>
+        <div id="jyam-bloque-codigo" class="oculto">
+          <div class="jyam-codigo" id="jyam-codigo-mostrado"></div>
+          <p class="jyam-estado-texto">Compartí este código para que se sumen a tu Jyam.</p>
+        </div>
+        <div class="fila-botones">
+          <button id="btn-jyam-salir" class="peligro">Salir del Jyam</button>
+        </div>
+      </div>
+
+      <button id="btn-cerrar-jyam" class="cerrar">Cerrar</button>
     </div>
   </div>
 
@@ -4000,6 +4070,7 @@ function generarOrden(cantidad, indicePrimero) {
 }
 
 function reproducirDeCola(cola, indice) {
+  if (jyamBloquearSiEsInvitado()) return;
   colaReproduccion = cola;
   indiceColaActual = indice;
   ordenReproduccion = generarOrden(cola.length, indice);
@@ -4041,6 +4112,7 @@ function reproducirIndiceActualDeCola() {
   btnFavoritoActual.classList.toggle("activo", favoritosIds.has(cancion.id));
   actualizarMediaSession(cancion);
   actualizarCdMiniReproductor(cancion);
+  if (jyamRol === "anfitrion") jyamEnviarEstado();
 }
 
 // si el álbum de la canción tiene un CD personalizado subido, se usa esa foto
@@ -4058,7 +4130,16 @@ function actualizarCdMiniReproductor(cancion) {
   }
 }
 
+function jyamBloquearSiEsInvitado() {
+  if (jyamRol !== "invitado") return false;
+  avisoJyam.textContent = "El anfitrión controla la reproducción en este Jyam.";
+  panelJyam.classList.remove("oculto");
+  jyamActualizarVistaPanel();
+  return true;
+}
+
 btnPlayPausa.addEventListener("click", () => {
+  if (jyamBloquearSiEsInvitado()) return;
   if (colaReproduccion.length === 0) return;
   if (indiceColaActual === -1) {
     posicionEnOrden = 0;
@@ -4068,8 +4149,14 @@ btnPlayPausa.addEventListener("click", () => {
   }
   if (audioEl.paused) audioEl.play(); else audioEl.pause();
 });
-document.getElementById("btn-siguiente").addEventListener("click", () => avanzarEnCola(1));
-document.getElementById("btn-anterior").addEventListener("click", () => avanzarEnCola(-1));
+document.getElementById("btn-siguiente").addEventListener("click", () => {
+  if (jyamBloquearSiEsInvitado()) return;
+  avanzarEnCola(1);
+});
+document.getElementById("btn-anterior").addEventListener("click", () => {
+  if (jyamBloquearSiEsInvitado()) return;
+  avanzarEnCola(-1);
+});
 
 document.getElementById("btn-aleatorio").addEventListener("click", () => {
   modoAleatorio = !modoAleatorio;
@@ -4104,6 +4191,7 @@ audioEl.addEventListener("play", () => {
   // la boca que canta también "sale" al lado de los otros dos visualizadores
   bocaMiniReproductor.classList.add("reproduciendo");
   bocaMiniReproductor.classList.remove("pausado");
+  if (jyamRol === "anfitrion" && !jyamAplicandoRemoto) jyamEnviarEstado();
 });
 audioEl.addEventListener("pause", () => {
   btnPlayPausa.textContent = "▶";
@@ -4113,6 +4201,7 @@ audioEl.addEventListener("pause", () => {
   cdMiniReproductor.classList.add("pausado");
   // en pausa la boca se queda afuera pero se cierra (deja de "cantar")
   bocaMiniReproductor.classList.add("pausado");
+  if (jyamRol === "anfitrion" && !jyamAplicandoRemoto) jyamEnviarEstado();
 });
 audioEl.addEventListener("ended", () => {
   audioAnalisis.pause();
@@ -4159,15 +4248,228 @@ audioEl.addEventListener("timeupdate", () => {
     } catch { /* algunos navegadores tiran error si duration no es finito todavía */ }
   }
 });
-barraProgreso.addEventListener("input", () => { arrastrandoProgreso = true; fijarVarProgreso(barraProgreso); });
+barraProgreso.addEventListener("input", () => {
+  if (jyamBloquearSiEsInvitado()) { arrastrandoProgreso = false; return; }
+  arrastrandoProgreso = true;
+  fijarVarProgreso(barraProgreso);
+});
 barraProgreso.addEventListener("change", () => {
+  if (jyamRol === "invitado") { arrastrandoProgreso = false; return; }
   if (audioEl.duration) audioEl.currentTime = (barraProgreso.value / 100) * audioEl.duration;
   arrastrandoProgreso = false;
+  if (jyamRol === "anfitrion") jyamEnviarEstado();
 });
 barraVolumen.addEventListener("input", () => { audioEl.volume = barraVolumen.value / 100; fijarVarProgreso(barraVolumen); });
 audioEl.volume = 0.7;
 fijarVarProgreso(barraProgreso);
 fijarVarProgreso(barraVolumen);
+
+// =========================================================================
+// JYAM — sesiones de escucha sincronizada en tiempo real (estilo Spotify Jam)
+// =========================================================================
+// Cómo funciona: el que "crea" el Jyam es el anfitrión (host); su reproductor
+// manda su estado (canción, posición, si está en play o pausa) por un
+// WebSocket cada vez que algo cambia y, además, cada pocos segundos como
+// "latido" de referencia. Los invitados reciben ese estado y ajustan su
+// propio <audio> para que quede alineado al segundo. El servidor solo hace
+// de mensajero (relay) entre los dispositivos de una misma sala; no decide
+// nada por su cuenta. El backend de esto vive en tu propio Worker de
+// Cloudflare (el mismo de apiMusicaUrl) — ver el archivo aparte
+// "jyam-backend.js" con el código y las instrucciones para sumarlo ahí.
+
+let jyamWs = null;
+let jyamRol = null;           // "anfitrion" | "invitado" | null
+let jyamCodigoSala = null;
+let jyamAplicandoRemoto = false;
+let jyamIntervaloLatido = null;
+const JYAM_UMBRAL_DESVIO_SEG = 0.75;   // si el desvío es menor a esto, no se toca (evita micro-saltos)
+const JYAM_LATENCIA_ESTIMADA_SEG = 0.15; // compensación aproximada de red
+
+function jyamUrlBase() {
+  // Reusa la misma URL del Worker de música (apiMusicaUrl), cambiando
+  // http(s) por ws(s) para las conexiones de WebSocket.
+  return ajustes.apiMusicaUrl.replace(/^http/i, "ws");
+}
+
+const panelJyam = document.getElementById("panel-jyam");
+const btnJyam = document.getElementById("btn-jyam");
+const vistaJyamInicio = document.getElementById("vista-jyam-inicio");
+const vistaJyamActivo = document.getElementById("vista-jyam-activo");
+const avisoJyam = document.getElementById("aviso-jyam");
+const jyamTextoEstado = document.getElementById("jyam-texto-estado");
+const jyamBloqueCodigo = document.getElementById("jyam-bloque-codigo");
+const jyamCodigoMostrado = document.getElementById("jyam-codigo-mostrado");
+
+btnJyam.addEventListener("click", () => {
+  panelJyam.classList.remove("oculto");
+  jyamActualizarVistaPanel();
+});
+document.getElementById("btn-cerrar-jyam").addEventListener("click", () => {
+  panelJyam.classList.add("oculto");
+});
+
+function jyamActualizarVistaPanel() {
+  avisoJyam.textContent = "";
+  btnJyam.classList.toggle("activo", !!jyamRol);
+  if (jyamRol) {
+    vistaJyamInicio.classList.add("oculto");
+    vistaJyamActivo.classList.remove("oculto");
+    if (jyamRol === "anfitrion") {
+      jyamTextoEstado.textContent = "Sos el anfitrión de este Jyam.";
+      jyamBloqueCodigo.classList.remove("oculto");
+      jyamCodigoMostrado.textContent = jyamCodigoSala;
+    } else {
+      jyamTextoEstado.textContent = "Escuchando sincronizado con el anfitrión.";
+      jyamBloqueCodigo.classList.add("oculto");
+    }
+  } else {
+    vistaJyamInicio.classList.remove("oculto");
+    vistaJyamActivo.classList.add("oculto");
+  }
+}
+
+document.getElementById("btn-jyam-crear").addEventListener("click", async () => {
+  if (!ajustes.apiMusicaUrl) { avisoJyam.textContent = "Configurá la URL de la API de Música en ⚙ Ajustes."; return; }
+  avisoJyam.textContent = "Creando sala…";
+  try {
+    const res = await fetch(`${ajustes.apiMusicaUrl}/jyam/crear`, { method: "POST" });
+    if (!res.ok) throw new Error("No se pudo crear la sala");
+    const datos = await res.json();
+    jyamConectar(datos.codigo, "anfitrion");
+  } catch (err) {
+    avisoJyam.textContent = "No se pudo crear el Jyam. Probá de nuevo.";
+  }
+});
+
+document.getElementById("btn-jyam-unirse").addEventListener("click", () => {
+  const codigo = document.getElementById("input-jyam-codigo").value.trim().toUpperCase();
+  if (!codigo) { avisoJyam.textContent = "Escribí un código de sala."; return; }
+  jyamConectar(codigo, "invitado");
+});
+
+document.getElementById("btn-jyam-salir").addEventListener("click", () => jyamSalir());
+
+function jyamConectar(codigo, rol) {
+  avisoJyam.textContent = "Conectando…";
+  try {
+    const ws = new WebSocket(`${jyamUrlBase()}/jyam/sala/${codigo}`);
+    ws.addEventListener("open", () => {
+      jyamWs = ws;
+      jyamRol = rol;
+      jyamCodigoSala = codigo;
+      jyamActualizarVistaPanel();
+      if (rol === "anfitrion") {
+        jyamEnviarEstado();
+        jyamIntervaloLatido = setInterval(jyamEnviarEstado, 3000);
+      }
+    });
+    ws.addEventListener("message", (evento) => {
+      let mensaje;
+      try { mensaje = JSON.parse(evento.data); } catch { return; }
+      if (mensaje.tipo === "estado") jyamAplicarEstadoRemoto(mensaje.datos);
+    });
+    ws.addEventListener("close", () => {
+      if (jyamWs === ws) {
+        const eraAnfitrion = jyamRol === "anfitrion";
+        jyamLimpiarEstadoLocal();
+        jyamActualizarVistaPanel();
+        if (!panelJyam.classList.contains("oculto")) {
+          avisoJyam.textContent = eraAnfitrion
+            ? "Se cerró la sala."
+            : "Se perdió la conexión con el Jyam.";
+        }
+      }
+    });
+    ws.addEventListener("error", () => {
+      avisoJyam.textContent = "No se pudo conectar al Jyam.";
+    });
+  } catch {
+    avisoJyam.textContent = "No se pudo conectar al Jyam.";
+  }
+}
+
+function jyamSalir() {
+  if (jyamWs) { try { jyamWs.close(); } catch {} }
+  jyamLimpiarEstadoLocal();
+  jyamActualizarVistaPanel();
+}
+
+function jyamLimpiarEstadoLocal() {
+  jyamWs = null;
+  jyamRol = null;
+  jyamCodigoSala = null;
+  if (jyamIntervaloLatido) { clearInterval(jyamIntervaloLatido); jyamIntervaloLatido = null; }
+  btnJyam.classList.remove("activo");
+}
+
+// el anfitrión llama a esto cada vez que cambia algo relevante (play, pausa,
+// cambio de canción, salto manual) y también cada 3 s como referencia
+function jyamEnviarEstado() {
+  if (jyamRol !== "anfitrion" || !jyamWs || jyamWs.readyState !== WebSocket.OPEN) return;
+  const cancion = colaReproduccion[indiceColaActual];
+  if (!cancion) return;
+  jyamWs.send(JSON.stringify({
+    tipo: "estado",
+    datos: {
+      cancion: {
+        id: cancion.id, titulo: cancion.titulo, albumTitulo: cancion.albumTitulo,
+        artista: cancion.artista, portadaUrl: cancion.portadaUrl,
+        albumId: cancion.albumId, claveCd: cancion.claveCd
+      },
+      posicion: audioEl.currentTime,
+      reproduciendo: !audioEl.paused,
+      marcaTiempo: Date.now()
+    }
+  }));
+}
+
+// el invitado aplica lo que le llega del anfitrión
+function jyamAplicarEstadoRemoto(datos) {
+  if (jyamRol !== "invitado" || !datos || !datos.cancion) return;
+  jyamAplicandoRemoto = true;
+  const cancionActual = colaReproduccion[indiceColaActual];
+  const cambioDeCancion = !cancionActual || cancionActual.id !== datos.cancion.id;
+
+  if (cambioDeCancion) {
+    colaReproduccion = [datos.cancion];
+    indiceColaActual = 0;
+    ordenReproduccion = [0];
+    posicionEnOrden = 0;
+    audioEl.src = `${ajustes.apiMusicaUrl}/api/stream/${datos.cancion.id}`;
+    document.getElementById("titulo-cancion").textContent = datos.cancion.titulo;
+    document.getElementById("subtitulo-cancion").textContent = `${datos.cancion.artista} · ${datos.cancion.albumTitulo}`;
+    if (datos.cancion.portadaUrl) {
+      imgPortadaActual.src = datos.cancion.portadaUrl;
+      imgPortadaActual.classList.remove("oculto");
+      portadaActualVacia.classList.add("oculto");
+      actualizarFondoReproductorActual(datos.cancion.portadaUrl);
+    } else {
+      imgPortadaActual.classList.add("oculto");
+      portadaActualVacia.classList.remove("oculto");
+      actualizarFondoReproductorActual(null);
+    }
+    actualizarCdMiniReproductor(datos.cancion);
+  }
+
+  const aplicarPosicionYPlayPausa = () => {
+    const transcurrido = datos.reproduciendo
+      ? (Date.now() - datos.marcaTiempo) / 1000 + JYAM_LATENCIA_ESTIMADA_SEG
+      : 0;
+    const posicionObjetivo = datos.posicion + transcurrido;
+    if (Number.isFinite(posicionObjetivo) && Math.abs(audioEl.currentTime - posicionObjetivo) > JYAM_UMBRAL_DESVIO_SEG) {
+      audioEl.currentTime = Math.max(0, posicionObjetivo);
+    }
+    if (datos.reproduciendo && audioEl.paused) audioEl.play().catch(() => {});
+    if (!datos.reproduciendo && !audioEl.paused) audioEl.pause();
+    jyamAplicandoRemoto = false;
+  };
+
+  if (cambioDeCancion) {
+    audioEl.addEventListener("loadedmetadata", aplicarPosicionYPlayPausa, { once: true });
+  } else {
+    aplicarPosicionYPlayPausa();
+  }
+}
 
 document.getElementById("btn-musica").addEventListener("click", () => {
   panelMusica.classList.remove("oculto");
