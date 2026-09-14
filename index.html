@@ -270,9 +270,12 @@ html, body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(92px, 120px));
-  gap: 76px 30px;
+  grid-template-columns: repeat(3, 104px);
+  justify-content: center;
+  row-gap: 76px;
+  column-gap: 30px;
   padding: 18px;
+  width: min(100%, calc(3 * 104px + 2 * 30px + 2 * 18px));
 }
 .icono-escritorio {
   display: flex;
@@ -280,7 +283,8 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: auto; height: auto;
+  flex: 0 0 104px;
+  width: 104px; height: auto;
   border: none;
   border-radius: 20px;
   background: rgba(255,255,255,0.55);
@@ -795,8 +799,8 @@ html, body {
   box-shadow: 0 12px 22px rgba(80, 45, 110, 0.32);
   border-color: rgba(15, 145, 135, 0.35);
 }
-.titulo-carrusel { font-size: 12px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.subtitulo-carrusel { font-size: 11px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.titulo-carrusel { font-size: 12px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; width: 100%; }
+.subtitulo-carrusel { font-size: 11px; color: #8a7aa0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; width: 100%; }
 
 /* --- buscador y grilla de álbumes --- */
 #cabecera-albumes { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -1044,6 +1048,8 @@ html, body {
 
 /* el reloj flotante no combina con el fondo oscuro de la galería */
 #panel-galeria:not(.oculto) ~ #reloj-widget { display: none; }
+/* con el panel de música abierto, el reloj tapaba el botón de favorito */
+#panel-musica:not(.oculto) ~ #reloj-widget { display: none; }
 
 #cabecera-galeria { text-align: center; padding-bottom: 16px; border-bottom: 1px solid rgba(217,195,138,0.32); }
 #titulo-galeria {
@@ -4815,10 +4821,17 @@ function jyamAplicarEstadoRemoto(datos) {
 document.getElementById("btn-musica").addEventListener("click", () => {
   panelMusica.classList.remove("oculto");
   actualizarVistaSegunSesionMusica();
-  ajustarLienzoADN();
+  // Se difiere al próximo frame: justo al sacar "oculto" el navegador
+  // todavía no terminó el layout, y getBoundingClientRect() puede devolver
+  // un tamaño viejo (o 0x0), dejando el canvas mal escalado hasta el
+  // próximo resize. Esperar un frame asegura que el panel ya mida lo que
+  // va a medir.
+  requestAnimationFrame(() => {
+    ajustarLienzoADN();
+    ajustarLienzoBoca();
+  });
   animandoADN = true;
   requestAnimationFrame(bucleADN);
-  ajustarLienzoBoca();
   animandoBoca = true;
   requestAnimationFrame(bucleBoca);
 });
