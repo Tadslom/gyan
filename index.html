@@ -269,13 +269,14 @@ html, body {
 #grid-escritorio {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 104px);
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  row-gap: 76px;
-  column-gap: 30px;
+  gap: 76px 30px;
   padding: 18px;
-  width: min(100%, calc(3 * 104px + 2 * 30px + 2 * 18px));
+  width: 100%;
+  max-width: calc(3 * 104px + 2 * 30px + 2 * 18px);
+  margin: 0 auto;
 }
 .icono-escritorio {
   display: flex;
@@ -284,7 +285,7 @@ html, body {
   justify-content: center;
   gap: 8px;
   flex: 0 0 104px;
-  width: 104px; height: auto;
+  width: 100%; max-width: 104px; height: auto;
   border: none;
   border-radius: 20px;
   background: rgba(255,255,255,0.55);
