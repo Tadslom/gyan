@@ -1233,6 +1233,26 @@ html, body {
 #menu-agregar-playlist { position: fixed; inset: 0; background: rgba(30,15,45,0.55); z-index: 60; display: flex; align-items: flex-end; }
 #menu-agregar-playlist.oculto { display: none; }
 #menu-agregar-playlist .tarjeta { max-height: 60vh; padding-bottom: calc(20px + var(--safe-bottom)); }
+/* --- playlists compartidas + miembros + admins --- */
+.insignia-compartida { display: inline-block; margin-left: 6px; background: #e6f4f2; color: var(--turquesa, #0f9187); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; vertical-align: middle; }
+.item-playlist .sub-playlist { display: block; font-size: 11.5px; font-weight: 400; color: #8a7aa0; margin-top: 2px; }
+.item-playlist .btn-texto { background: none; border: 1px solid var(--tarjeta-borde); border-radius: 8px; padding: 5px 9px; font-size: 12px; color: #502d6e; }
+#menu-miembros-playlist { position: fixed; inset: 0; background: rgba(30,15,45,0.55); z-index: 60; display: flex; align-items: flex-end; }
+#menu-miembros-playlist.oculto { display: none; }
+#menu-miembros-playlist .tarjeta { max-height: 70vh; overflow-y: auto; padding-bottom: calc(20px + var(--safe-bottom)); }
+.fila-miembro { display: flex; align-items: center; gap: 8px; padding: 9px 2px; border-bottom: 1px solid #f0eaf8; font-size: 14px; color: #502d6e; }
+.fila-miembro .nombre-miembro { flex: 1; text-align: left; }
+.fila-miembro .rol-miembro { font-size: 11px; color: #8a7aa0; }
+.input-orden-cancion { flex: none; width: 42px; padding: 6px 2px; text-align: center; font-size: 14px; font-weight: 700; color: #502d6e; border: 1px solid var(--tarjeta-borde); border-radius: 8px; background: #fff; -moz-appearance: textfield; }
+.input-orden-cancion::-webkit-outer-spin-button, .input-orden-cancion::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#aviso-orden-album { font-size: 12px; color: #8a7aa0; min-height: 1em; padding: 0 2px 6px; }
+.insignia-modo-admin { display: inline-block; margin-bottom: 6px; background: #fbe4e6; color: var(--rojo-apagado); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+#lista-usuarios { display: flex; flex-direction: column; max-height: 240px; overflow-y: auto; border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 2px 10px; }
+#lista-usuarios .btn-texto { background: none; border: 1px solid var(--tarjeta-borde); border-radius: 8px; padding: 4px 8px; font-size: 11.5px; color: #502d6e; }
+.fila-miembro .etiqueta-admin { font-size: 10.5px; font-weight: 700; color: var(--rojo-apagado); background: #fbe4e6; padding: 2px 7px; border-radius: 6px; }
+#bloque-admins-ajustes { display: flex; flex-direction: column; gap: 8px; }
+#bloque-admins-ajustes.oculto { display: none; }
+#lista-admins { display: flex; flex-direction: column; }
 .opcion-playlist-menu { padding: 11px 2px; font-size: 14px; color: #502d6e; border-bottom: 1px solid #f0eaf8; background: none; border-left: none; border-right: none; border-top: none; text-align: left; }
 
 /* --- admin --- */
@@ -2097,6 +2117,21 @@ html, body {
     </div>
   </div>
 
+  <!-- ================= MENÚ "MIEMBROS DE LA PLAYLIST" ================= -->
+  <div id="menu-miembros-playlist" class="oculto">
+    <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
+      <h2 id="titulo-miembros-playlist">Miembros</h2>
+      <div id="bloque-invitar-miembro" class="fila-nueva-playlist">
+        <input id="input-invitar-miembro" type="text" placeholder="Nombre de usuario a invitar" autocapitalize="none" autocomplete="off" />
+        <button id="btn-invitar-miembro" class="secundario">Invitar</button>
+      </div>
+      <div id="aviso-miembros-playlist" class="aviso-musica"></div>
+      <div id="lista-miembros-playlist"></div>
+      <button id="btn-cerrar-miembros-playlist" class="cerrar">Cerrar</button>
+    </div>
+  </div>
+
   <!-- ================= PANEL DE AJUSTES ================= -->
   <!-- ================= RELOJ ================= -->
   <div id="reloj-widget">
@@ -2186,6 +2221,31 @@ html, body {
       <div class="fila-botones">
         <button id="btn-guardar-apariencia">Guardar apariencia</button>
         <button id="btn-restaurar-apariencia" class="peligro">Restaurar apariencia</button>
+      </div>
+
+      <div id="bloque-admins-ajustes" class="oculto">
+        <hr class="separador-ajustes" />
+        <h3>Administradores</h3>
+        <div class="aviso-proxy">Los administradores pueden subir música y fotos, y agregar o quitar a otros administradores.</div>
+        <div class="fila-nueva-playlist">
+          <input id="input-nuevo-admin" type="text" placeholder="Usuario que ya tenga cuenta" autocapitalize="none" autocomplete="off" />
+          <button id="btn-agregar-admin" class="secundario">Agregar</button>
+        </div>
+        <div id="aviso-admins" class="aviso-musica"></div>
+        <div id="lista-admins"></div>
+
+        <hr class="separador-ajustes" />
+        <h3>Modo admin</h3>
+        <label class="fila-check">
+          <input id="input-modo-admin" type="checkbox" />
+          Activar modo admin (numerar y reordenar canciones dentro de los álbumes)
+        </label>
+
+        <hr class="separador-ajustes" />
+        <h3>Usuarios</h3>
+        <div id="resumen-usuarios" class="aviso-proxy"></div>
+        <div id="lista-usuarios"></div>
+        <div id="aviso-usuarios" class="aviso-musica"></div>
       </div>
 
       <button id="btn-cerrar-ajustes" class="cerrar">Cerrar</button>
@@ -2920,6 +2980,7 @@ function abrirAjustes() {
   document.getElementById("input-color-acento").value = ajustes.colorAcento || "#0f9187";
   document.getElementById("fila-color-fondo-solido").classList.toggle("oculto", (ajustes.fondoEscritorio || "defecto") !== "solido");
   panelAjustes.classList.remove("oculto");
+  actualizarBloqueAdmins();
 }
 document.getElementById("btn-ajustes").addEventListener("click", abrirAjustes);
 document.getElementById("btn-cerrar-ajustes").addEventListener("click", () => panelAjustes.classList.add("oculto"));
@@ -4383,13 +4444,79 @@ async function abrirAlbum(albumId) {
         <div class="album-artista">${escaparHtml(album.artista)}${album.anio ? " · " + album.anio : ""}</div>
       </div>`;
     const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl, albumId: album.id, claveCd: album.clave_cd }));
-    const contenedor = document.getElementById("canciones-album-detalle");
-    contenedor.innerHTML = "";
-    cola.forEach((cancion, indice) => contenedor.appendChild(crearFilaCancion(cancion, cola, indice)));
+    estadoOrdenAlbum = { albumId: album.id, cola, temporizador: null };
+    pintarCancionesAlbumDetalle();
     document.getElementById("contenido-musica").classList.add("oculto");
     document.getElementById("vista-album-detalle").classList.remove("oculto");
   } catch (e) {
     alert(e.message);
+  }
+}
+
+// ---- modo admin: reordenar canciones de un álbum ----
+let estadoOrdenAlbum = null; // { albumId, cola, temporizador }
+function modoAdminActivo() {
+  return !!(sesionMusica && sesionMusica.token && sesionMusica.esAdmin && Almacen.cargar("gyan_modo_admin", false));
+}
+function pintarCancionesAlbumDetalle() {
+  if (!estadoOrdenAlbum) return;
+  const { cola } = estadoOrdenAlbum;
+  const contenedor = document.getElementById("canciones-album-detalle");
+  contenedor.innerHTML = "";
+  const editando = modoAdminActivo() && cola.length > 1;
+  if (editando) {
+    const cab = document.createElement("div");
+    cab.innerHTML = '<span class="insignia-modo-admin">MODO ADMIN · escribí el número de posición de cada canción</span><div id="aviso-orden-album"></div>';
+    contenedor.appendChild(cab);
+  }
+  cola.forEach((cancion, indice) => {
+    const fila = crearFilaCancion(cancion, cola, indice);
+    if (editando) {
+      const inputPos = document.createElement("input");
+      inputPos.type = "number";
+      inputPos.inputMode = "numeric";
+      inputPos.className = "input-orden-cancion";
+      inputPos.min = "1";
+      inputPos.max = String(cola.length);
+      inputPos.value = String(indice + 1);
+      inputPos.title = "Posición en el álbum";
+      inputPos.addEventListener("click", (ev) => ev.stopPropagation());
+      inputPos.addEventListener("focus", () => inputPos.select());
+      inputPos.addEventListener("keydown", (ev) => { if (ev.key === "Enter") inputPos.blur(); });
+      inputPos.addEventListener("change", () => moverCancionAPosicion(indice, parseInt(inputPos.value, 10)));
+      fila.insertBefore(inputPos, fila.firstChild);
+    }
+    contenedor.appendChild(fila);
+  });
+}
+function moverCancionAPosicion(indice, numero) {
+  if (!estadoOrdenAlbum) return;
+  const cola = estadoOrdenAlbum.cola;
+  if (!Number.isInteger(numero)) { pintarCancionesAlbumDetalle(); return; }
+  const destino = Math.min(cola.length, Math.max(1, numero)) - 1;
+  if (destino === indice) { pintarCancionesAlbumDetalle(); return; }
+  const [cancion] = cola.splice(indice, 1);
+  cola.splice(destino, 0, cancion);
+  pintarCancionesAlbumDetalle();
+  const aviso = document.getElementById("aviso-orden-album");
+  if (aviso) aviso.textContent = "Guardando orden…";
+  clearTimeout(estadoOrdenAlbum.temporizador);
+  const albumId = estadoOrdenAlbum.albumId;
+  estadoOrdenAlbum.temporizador = setTimeout(() => guardarOrdenAlbum(albumId), 600);
+}
+async function guardarOrdenAlbum(albumId) {
+  if (!estadoOrdenAlbum || estadoOrdenAlbum.albumId !== albumId) return;
+  const ids = estadoOrdenAlbum.cola.map(c => c.id);
+  try {
+    await apiMusica(`/api/admin/albumes/${albumId}/orden`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orden: ids })
+    });
+    invalidarCachesMusica();
+    const aviso = document.getElementById("aviso-orden-album");
+    if (aviso) aviso.textContent = "Orden guardado ✓";
+  } catch (e) {
+    const aviso = document.getElementById("aviso-orden-album");
+    if (aviso) aviso.textContent = "No se pudo guardar: " + e.message;
   }
 }
 document.getElementById("btn-volver-albumes").addEventListener("click", () => {
@@ -4610,7 +4737,14 @@ document.getElementById("btn-mezclar-todo").addEventListener("click", async () =
   }
 });
 
-// ---- playlists ----
+// ---- playlists (propias y compartidas) ----
+// Una playlist puede tener varios miembros: todos pueden agregar/quitar canciones;
+// solo la persona que la creó (o un admin) puede invitar/expulsar gente y borrarla.
+function textoSubPlaylist(pl) {
+  if (pl.esPropia === false) return `De ${pl.propietario || "otro usuario"}`;
+  const n = Number(pl.miembros || 0);
+  return n > 0 ? `Compartida con ${n} ${n === 1 ? "persona" : "personas"}` : "";
+}
 async function cargarPlaylists() {
   const contenedor = document.getElementById("lista-mis-playlists");
   contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
@@ -4618,26 +4752,52 @@ async function cargarPlaylists() {
     const datos = await apiMusica("/api/mis/playlists");
     contenedor.innerHTML = "";
     if (datos.playlists.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no creaste ninguna playlist.</div>';
+      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no tenés playlists. Creá una o pedile a alguien que te invite a la suya.</div>';
       return;
     }
     datos.playlists.forEach(pl => {
+      const esPropia = pl.esPropia !== false;
+      const compartida = !esPropia || Number(pl.miembros || 0) > 0;
       const fila = document.createElement("div");
       fila.className = "item-playlist";
+
       const btnAbrir = document.createElement("button");
       btnAbrir.className = "info-cancion";
-      btnAbrir.textContent = pl.nombre;
+      btnAbrir.innerHTML = `${escaparHtml(pl.nombre)}${compartida ? '<span class="insignia-compartida">👥 Compartida</span>' : ""}`
+        + (textoSubPlaylist(pl) ? `<span class="sub-playlist">${escaparHtml(textoSubPlaylist(pl))}</span>` : "");
       btnAbrir.addEventListener("click", () => abrirPlaylist(pl.id, pl.nombre));
       fila.appendChild(btnAbrir);
-      const btnBorrar = document.createElement("button");
-      btnBorrar.className = "btn-icono";
-      btnBorrar.textContent = "🗑";
-      btnBorrar.addEventListener("click", async () => {
-        if (!confirm(`¿Borrar la playlist "${pl.nombre}"?`)) return;
-        try { await apiMusica(`/api/mis/playlists/${pl.id}`, { method: "DELETE" }); cargarPlaylists(); }
-        catch (e) { alert(e.message); }
-      });
-      fila.appendChild(btnBorrar);
+
+      // Compartir / ver miembros (todos pueden verlos; solo el dueño invita)
+      const btnMiembros = document.createElement("button");
+      btnMiembros.className = "btn-icono";
+      btnMiembros.title = esPropia ? "Compartir" : "Ver miembros";
+      btnMiembros.textContent = "👥";
+      btnMiembros.addEventListener("click", () => abrirMenuMiembros(pl, esPropia));
+      fila.appendChild(btnMiembros);
+
+      if (esPropia) {
+        const btnBorrar = document.createElement("button");
+        btnBorrar.className = "btn-icono";
+        btnBorrar.textContent = "🗑";
+        btnBorrar.addEventListener("click", async () => {
+          const aviso = Number(pl.miembros || 0) > 0 ? " Se borrará también para las personas con las que la compartiste." : "";
+          if (!confirm(`¿Borrar la playlist "${pl.nombre}"?${aviso}`)) return;
+          try { await apiMusica(`/api/mis/playlists/${pl.id}`, { method: "DELETE" }); cargarPlaylists(); }
+          catch (e) { alert(e.message); }
+        });
+        fila.appendChild(btnBorrar);
+      } else {
+        const btnSalir = document.createElement("button");
+        btnSalir.className = "btn-texto";
+        btnSalir.textContent = "Salir";
+        btnSalir.addEventListener("click", async () => {
+          if (!confirm(`¿Salir de la playlist "${pl.nombre}"?`)) return;
+          try { await apiMusica(`/api/mis/playlists/${pl.id}/miembros/yo`, { method: "DELETE" }); cargarPlaylists(); }
+          catch (e) { alert(e.message); }
+        });
+        fila.appendChild(btnSalir);
+      }
       contenedor.appendChild(fila);
     });
   } catch (e) {
@@ -4664,7 +4824,7 @@ async function abrirPlaylist(playlistId, nombre) {
     const cola = datos.canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: c.album_titulo, artista: c.artista, portadaUrl: c.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${c.album_id}` : null, albumId: c.album_id, claveCd: c.clave_cd }));
     document.getElementById("cabecera-album-detalle").innerHTML = `
       <div class="portada-album vacia">♪</div>
-      <div id="info-album-detalle"><div class="album-titulo">${escaparHtml(nombre)}</div><div class="album-artista">Playlist</div></div>`;
+      <div id="info-album-detalle"><div class="album-titulo">${escaparHtml(nombre)}</div><div class="album-artista">Playlist${datos.compartida ? " compartida" : ""}</div></div>`;
     const contenedor = document.getElementById("canciones-album-detalle");
     contenedor.innerHTML = "";
     if (cola.length === 0) {
@@ -4702,7 +4862,8 @@ async function abrirMenuAgregarPlaylist(cancionId) {
     datos.playlists.forEach(pl => {
       const btn = document.createElement("button");
       btn.className = "opcion-playlist-menu";
-      btn.textContent = pl.nombre;
+      const compartida = pl.esPropia === false || Number(pl.miembros || 0) > 0;
+      btn.textContent = pl.nombre + (compartida ? "  👥" : "");
       btn.addEventListener("click", async () => {
         try {
           await apiMusica(`/api/mis/playlists/${pl.id}/canciones`, {
@@ -4720,6 +4881,194 @@ async function abrirMenuAgregarPlaylist(cancionId) {
 document.getElementById("btn-cerrar-menu-playlist").addEventListener("click", () => {
   document.getElementById("menu-agregar-playlist").classList.add("oculto");
 });
+
+// ---- miembros de una playlist ----
+let playlistMiembrosActual = null; // { pl, esPropia }
+async function abrirMenuMiembros(pl, esPropia) {
+  playlistMiembrosActual = { pl, esPropia };
+  document.getElementById("titulo-miembros-playlist").textContent = `Miembros · ${pl.nombre}`;
+  document.getElementById("bloque-invitar-miembro").classList.toggle("oculto", !esPropia);
+  document.getElementById("input-invitar-miembro").value = "";
+  document.getElementById("aviso-miembros-playlist").textContent = "";
+  document.getElementById("menu-miembros-playlist").classList.remove("oculto");
+  await cargarMiembrosPlaylist();
+}
+async function cargarMiembrosPlaylist() {
+  if (!playlistMiembrosActual) return;
+  const { pl, esPropia } = playlistMiembrosActual;
+  const contenedor = document.getElementById("lista-miembros-playlist");
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  try {
+    const datos = await apiMusica(`/api/mis/playlists/${pl.id}/miembros`);
+    contenedor.innerHTML = "";
+    const puedeGestionar = esPropia || !!(sesionMusica && sesionMusica.esAdmin);
+    // el dueño primero
+    const filaDuenio = document.createElement("div");
+    filaDuenio.className = "fila-miembro";
+    filaDuenio.innerHTML = `<span class="nombre-miembro">${escaparHtml(datos.propietario || "—")}</span><span class="rol-miembro">Creador/a</span>`;
+    contenedor.appendChild(filaDuenio);
+    if (!datos.miembros || datos.miembros.length === 0) {
+      const vacio = document.createElement("div");
+      vacio.className = "estado-vacio-musica";
+      vacio.textContent = esPropia ? "Todavía no la compartiste con nadie." : "No hay más miembros.";
+      contenedor.appendChild(vacio);
+      return;
+    }
+    datos.miembros.forEach(m => {
+      const fila = document.createElement("div");
+      fila.className = "fila-miembro";
+      fila.innerHTML = `<span class="nombre-miembro">${escaparHtml(m.nombreUsuario)}</span><span class="rol-miembro">Puede editar</span>`;
+      if (puedeGestionar) {
+        const btn = document.createElement("button");
+        btn.className = "btn-icono";
+        btn.textContent = "✕";
+        btn.title = "Quitar de la playlist";
+        btn.addEventListener("click", async () => {
+          if (!confirm(`¿Quitar a ${m.nombreUsuario} de la playlist?`)) return;
+          try { await apiMusica(`/api/mis/playlists/${pl.id}/miembros/${m.id}`, { method: "DELETE" }); await cargarMiembrosPlaylist(); cargarPlaylists(); }
+          catch (e) { document.getElementById("aviso-miembros-playlist").textContent = e.message; }
+        });
+        fila.appendChild(btn);
+      }
+      contenedor.appendChild(fila);
+    });
+  } catch (e) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  }
+}
+async function invitarMiembroPlaylist() {
+  if (!playlistMiembrosActual) return;
+  const input = document.getElementById("input-invitar-miembro");
+  const aviso = document.getElementById("aviso-miembros-playlist");
+  const nombreUsuario = input.value.trim();
+  if (!nombreUsuario) return;
+  aviso.textContent = "Invitando…";
+  try {
+    await apiMusica(`/api/mis/playlists/${playlistMiembrosActual.pl.id}/miembros`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombreUsuario })
+    });
+    input.value = "";
+    aviso.textContent = "";
+    await cargarMiembrosPlaylist();
+    cargarPlaylists();
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
+}
+document.getElementById("btn-invitar-miembro").addEventListener("click", invitarMiembroPlaylist);
+document.getElementById("input-invitar-miembro").addEventListener("keydown", (e) => { if (e.key === "Enter") invitarMiembroPlaylist(); });
+document.getElementById("btn-cerrar-miembros-playlist").addEventListener("click", () => {
+  document.getElementById("menu-miembros-playlist").classList.add("oculto");
+  playlistMiembrosActual = null;
+});
+
+// ---- administradores (visible solo para admins, dentro de Ajustes) ----
+function actualizarBloqueAdmins() {
+  const bloque = document.getElementById("bloque-admins-ajustes");
+  const esAdmin = !!(sesionMusica && sesionMusica.token && sesionMusica.esAdmin);
+  bloque.classList.toggle("oculto", !esAdmin);
+  if (esAdmin) {
+    document.getElementById("input-modo-admin").checked = !!Almacen.cargar("gyan_modo_admin", false);
+    cargarAdmins();
+    cargarUsuarios();
+  }
+}
+document.getElementById("input-modo-admin").addEventListener("change", (e) => {
+  Almacen.guardar("gyan_modo_admin", e.target.checked);
+  pintarCancionesAlbumDetalle(); // si hay un álbum abierto, se actualiza al instante
+});
+async function cargarUsuarios() {
+  const contenedor = document.getElementById("lista-usuarios");
+  const aviso = document.getElementById("aviso-usuarios");
+  const resumen = document.getElementById("resumen-usuarios");
+  aviso.textContent = "";
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  try {
+    const datos = await apiMusica("/api/admin/usuarios");
+    contenedor.innerHTML = "";
+    const total = datos.usuarios.length;
+    const nAdmins = datos.usuarios.filter(u => u.esAdmin).length;
+    resumen.textContent = `${total} ${total === 1 ? "usuario registrado" : "usuarios registrados"} · ${nAdmins} ${nAdmins === 1 ? "admin" : "admins"}`;
+    datos.usuarios.forEach(u => {
+      const fila = document.createElement("div");
+      fila.className = "fila-miembro";
+      const esYo = sesionMusica && u.nombreUsuario === sesionMusica.nombreUsuario;
+      fila.innerHTML = `<span class="nombre-miembro">${escaparHtml(u.nombreUsuario)}${esYo ? " (vos)" : ""}</span>`
+        + (u.esAdmin ? '<span class="etiqueta-admin">ADMIN</span>' : "");
+      if (!u.esAdmin) {
+        const btn = document.createElement("button");
+        btn.className = "btn-texto";
+        btn.textContent = "Hacer admin";
+        btn.addEventListener("click", async () => {
+          if (!confirm(`¿Dar permisos de administrador a "${u.nombreUsuario}"?`)) return;
+          try {
+            await apiMusica("/api/admin/admins", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombreUsuario: u.nombreUsuario })
+            });
+            cargarAdmins(); cargarUsuarios();
+          } catch (e) { aviso.textContent = e.message; }
+        });
+        fila.appendChild(btn);
+      }
+      contenedor.appendChild(fila);
+    });
+  } catch (e) {
+    contenedor.innerHTML = "";
+    aviso.textContent = e.message;
+  }
+}
+async function cargarAdmins() {
+  const contenedor = document.getElementById("lista-admins");
+  const aviso = document.getElementById("aviso-admins");
+  aviso.textContent = "";
+  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  try {
+    const datos = await apiMusica("/api/admin/admins");
+    contenedor.innerHTML = "";
+    datos.admins.forEach(a => {
+      const fila = document.createElement("div");
+      fila.className = "fila-miembro";
+      const esYo = sesionMusica && a.nombreUsuario === sesionMusica.nombreUsuario;
+      fila.innerHTML = `<span class="nombre-miembro">${escaparHtml(a.nombreUsuario)}${esYo ? " (vos)" : ""}</span>`
+        + (a.principal ? '<span class="rol-miembro">Creador</span>' : "");
+      if (!esYo && !a.principal) {
+        const btn = document.createElement("button");
+        btn.className = "btn-icono";
+        btn.textContent = "✕";
+        btn.title = "Quitar permisos de admin";
+        btn.addEventListener("click", async () => {
+          if (!confirm(`¿Quitarle el rol de administrador a ${a.nombreUsuario}?`)) return;
+          try { await apiMusica(`/api/admin/admins/${a.id}`, { method: "DELETE" }); cargarAdmins(); cargarUsuarios(); }
+          catch (e) { aviso.textContent = e.message; }
+        });
+        fila.appendChild(btn);
+      }
+      contenedor.appendChild(fila);
+    });
+  } catch (e) {
+    contenedor.innerHTML = "";
+    aviso.textContent = e.message;
+  }
+}
+async function agregarAdmin() {
+  const input = document.getElementById("input-nuevo-admin");
+  const aviso = document.getElementById("aviso-admins");
+  const nombreUsuario = input.value.trim();
+  if (!nombreUsuario) return;
+  if (!confirm(`¿Dar permisos de administrador a "${nombreUsuario}"?`)) return;
+  aviso.textContent = "Agregando…";
+  try {
+    await apiMusica("/api/admin/admins", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombreUsuario })
+    });
+    input.value = "";
+    cargarAdmins(); cargarUsuarios();
+  } catch (e) {
+    aviso.textContent = e.message;
+  }
+}
+document.getElementById("btn-agregar-admin").addEventListener("click", agregarAdmin);
+document.getElementById("input-nuevo-admin").addEventListener("keydown", (e) => { if (e.key === "Enter") agregarAdmin(); });
 
 // ---- admin ----
 async function llenarSelectAlbumes(idSelect, textoVacio) {
