@@ -1712,6 +1712,12 @@ html, body {
 #grid-escritorio .icono-escritorio:active{transform:scale(.94);background:rgba(255,255,255,.7)}
 #grid-escritorio .icono-etiqueta{line-height:1.2;word-break:break-word}
 </style>
+<style id="busqueda-musica-extra">
+.btn-ver-mas-resultados { align-self:center; margin-top:4px; padding:8px 18px; border-radius:999px; border:1px solid var(--tarjeta-borde);
+  background:var(--tarjeta-bg); color:var(--turquesa); font-weight:700; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(45,25,65,.08); }
+.btn-ver-mas-resultados:hover { border-color:var(--turquesa); }
+.btn-ver-mas-resultados:active { transform:scale(.96); }
+</style>
 <style id="kira-ball-estilos">
 /* ================= KIRA BALL (panel dentro de Gyan) ================= */
 #panel-kira { position:fixed; inset:0; z-index:6; overflow:hidden;
@@ -4257,22 +4263,40 @@ async function obtenerTodosLosAlbumes(forzar = false) {
   // colección completa hay que pedir página por página hasta que la API
   // devuelva una página incompleta (o vacía).
   const TAMANO_PAGINA = 100;
-  let todos = [];
-  let pagina = 1;
-  while (true) {
-    const datos = await apiMusica(`/api/albumes?porPagina=${TAMANO_PAGINA}&pagina=${pagina}`);
+  const vistos = new Set();
+  const todos = [];
+  let completo = true;
+  for (let pagina = 1; pagina <= 500; pagina++) {
+    let datos;
+    try {
+      datos = await apiMusica(`/api/albumes?porPagina=${TAMANO_PAGINA}&pagina=${pagina}`);
+    } catch (e) {
+      if (pagina === 1) throw e;
+      completo = false; break; // si falla una página intermedia se muestra lo ya cargado (sin cachearlo)
+    }
     const lote = datos.albumes || [];
-    todos = todos.concat(lote);
-    if (lote.length < TAMANO_PAGINA) break; // última página
-    pagina++;
+    let nuevos = 0;
+    lote.forEach(a => {
+      const clave = a.id ?? JSON.stringify(a);
+      if (!vistos.has(clave)) { vistos.add(clave); todos.push(a); nuevos++; }
+    });
+    // se corta solo cuando la API ya no entrega álbumes nuevos (no por el tamaño de la
+    // página, porque la API puede devolver menos de 100 por página y se perderían álbumes)
+    if (lote.length === 0 || nuevos === 0) break;
+    const totalPaginas = datos.totalPaginas ?? datos.total_paginas;
+    if (typeof totalPaginas === "number" && pagina >= totalPaginas) break;
+    if (typeof datos.total === "number" && todos.length >= datos.total) break;
   }
-  cacheAlbumesTodos = mezclarArreglo(todos);
-  return cacheAlbumesTodos;
+  const mezclados = mezclarArreglo(todos);
+  if (completo) cacheAlbumesTodos = mezclados;
+  return mezclados;
 }
 // se llama después de cualquier alta/baja/edición en Admin para que álbumes,
 // artistas, canciones y búsqueda vuelvan a reflejar la biblioteca real
 function invalidarCachesMusica() {
   cachePorMezclarTodo = null;
+  cancionesPorAlbum.clear();
+  cancionesIncompletas = false;
   cacheAlbumesTodos = null;
   listaArtistasFiltro = [];
 }
@@ -4353,13 +4377,15 @@ async function obtenerMapaArtistasFotos(forzar = false) {
   return mapa;
 }
 function agruparAlbumesPorArtista(albumes) {
+  // se agrupa por nombre normalizado (sin mayúsculas, tildes ni espacios sobrantes) para que
+  // "Artista", "artista " y "Artistá" no aparezcan como artistas distintos
   const porArtista = new Map();
   albumes.forEach(a => {
-    if (!porArtista.has(a.artista)) porArtista.set(a.artista, []);
-    porArtista.get(a.artista).push(a);
+    const clave = normalizarBusqueda(String(a.artista ?? "")).replace(/\s+/g, " ").trim();
+    if (!porArtista.has(clave)) porArtista.set(clave, { nombre: a.artista, albumes: [] });
+    porArtista.get(clave).albumes.push(a);
   });
-  return mezclarArreglo(Array.from(porArtista.entries())
-    .map(([nombre, albumesDelArtista]) => ({ nombre, albumes: albumesDelArtista })));
+  return mezclarArreglo(Array.from(porArtista.values()));
 }
 function obtenerPortadaUltimoAlbum(albumesDelArtista) {
   const conPortada = albumesDelArtista.filter(a => a.clave_portada);
@@ -4522,25 +4548,59 @@ document.getElementById("btn-borrar-busquedas-recientes").addEventListener("clic
 function normalizarBusqueda(texto) {
   return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
+// texto comparable: sin mayúsculas, tildes ni signos ("AC/DC" -> "ac dc", "P!nk" -> "p nk");
+// conserva letras de cualquier alfabeto (japonés, coreano, cirílico…)
+function claveBusqueda(texto) {
+  return normalizarBusqueda(String(texto ?? "")).replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+}
+const memoBusqueda = new WeakMap();
+function clavesDe(item) {
+  let k = memoBusqueda.get(item);
+  if (!k) {
+    k = { tit: claveBusqueda(item.titulo), art: claveBusqueda(item.artista), alb: claveBusqueda(item.albumTitulo) };
+    memoBusqueda.set(item, k);
+  }
+  return k;
+}
+let contadorBusquedaMusica = 0;
 async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-busqueda-musica") {
   const contenedor = document.getElementById(idContenedor);
   const inicioBusqueda = document.getElementById("busqueda-inicial-musica");
   if (inicioBusqueda) inicioBusqueda.classList.add("oculto");
   contenedor.innerHTML = '<div class="estado-vacio-musica">Buscando…</div>';
-  const q = normalizarBusqueda(texto);
+  const miBusqueda = ++contadorBusquedaMusica;
+  const frase = claveBusqueda(texto);
+  const palabras = frase ? frase.split(" ") : [];
   const f = filtrosBusqueda;
-  const art = normalizarBusqueda(f.artista);
-  const desde = parseInt(f.desde, 10) || null, hasta = parseInt(f.hasta, 10) || null;
-  const coincide = (titulo, artista) => {
-    if (!q) return true;
-    const enTit = normalizarBusqueda(titulo || "").includes(q), enArt = normalizarBusqueda(artista || "").includes(q);
-    return f.en === "titulo" ? enTit : f.en === "artista" ? enArt : (enTit || enArt);
+  const art = normalizarBusqueda(String(f.artista ?? "")).replace(/\s+/g, " ").trim();
+  let desde = parseInt(f.desde, 10) || null, hasta = parseInt(f.hasta, 10) || null;
+  if (desde && hasta && desde > hasta) [desde, hasta] = [hasta, desde];
+  // cada palabra escrita debe aparecer (en cualquier orden) en el título, el artista o,
+  // para canciones, el álbum: "bad bunny verano" encuentra "Un Verano Sin Ti" de Bad Bunny
+  const textoDe = (k, esCancion) =>
+    f.en === "titulo" ? k.tit : f.en === "artista" ? k.art : (k.tit + " " + k.art + (esCancion ? " " + k.alb : ""));
+  const coincide = (item, esCancion) => {
+    if (palabras.length === 0) return true;
+    const t = textoDe(clavesDe(item), esCancion);
+    return palabras.every(p => t.includes(p));
   };
   const filtrosOk = (artista, anio) =>
-    (!art || normalizarBusqueda(artista || "") === art) &&
+    (!art || normalizarBusqueda(String(artista ?? "")).replace(/\s+/g, " ").trim() === art) &&
     (!(desde || hasta) || (anio && (!desde || anio >= desde) && (!hasta || anio <= hasta)));
-  const ordenar = (lista, nombre, anio) => {
-    if (f.orden === "relevancia") return lista;
+  // relevancia: coincidencia exacta > empieza por > palabra completa > contiene
+  const rango = (base) => {
+    if (!frase) return 0;
+    if (base === frase) return 0;
+    if (base.startsWith(frase)) return 1;
+    if ((" " + base).includes(" " + frase)) return 2;
+    if (base.includes(frase)) return 3;
+    return 4;
+  };
+  const ordenar = (lista, nombre, anio, baseRelevancia) => {
+    if (f.orden === "relevancia") {
+      if (!frase) return lista;
+      return lista.map((x, i) => [x, rango(baseRelevancia(x)), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(t => t[0]);
+    }
     const cmp = {
       az: (a, b) => nombre(a).localeCompare(nombre(b), "es"),
       za: (a, b) => nombre(b).localeCompare(nombre(a), "es"),
@@ -4549,58 +4609,85 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
     }[f.orden];
     return lista.slice().sort(cmp);
   };
-  const lim = (n) => f.tipo === "todo" ? n : n * 5;
+  const baseItem = (x) => f.en === "artista" ? clavesDe(x).art : clavesDe(x).tit;
   try {
     const [albumes, canciones, mapaFotos] = await Promise.all([
       obtenerTodosLosAlbumes(),
       obtenerTodasLasCanciones(),
       obtenerMapaArtistasFotos().catch(() => new Map()),
     ]);
+    if (miBusqueda !== contadorBusquedaMusica) return; // llegó una búsqueda más nueva
     const albumesCoincidentes = (f.tipo === "todo" || f.tipo === "albumes")
-      ? ordenar(albumes.filter(a => coincide(a.titulo, a.artista) && filtrosOk(a.artista, a.anio)), a => a.titulo || "", a => a.anio) : [];
+      ? ordenar(albumes.filter(a => coincide(a, false) && filtrosOk(a.artista, a.anio)), a => a.titulo || "", a => a.anio, baseItem) : [];
     const cancionesCoincidentes = (f.tipo === "todo" || f.tipo === "canciones")
-      ? ordenar(canciones.filter(c => coincide(c.titulo, c.artista) && filtrosOk(c.artista, c.anio)), c => c.titulo || "", c => c.anio) : [];
+      ? ordenar(canciones.filter(c => coincide(c, true) && filtrosOk(c.artista, c.anio)), c => c.titulo || "", c => c.anio, baseItem) : [];
     const artistasCoincidentes = (f.tipo === "todo" || f.tipo === "artistas") && f.en !== "titulo"
       ? ordenar(agruparAlbumesPorArtista(albumes.filter(a => filtrosOk(a.artista, a.anio)))
-          .filter(a => !q || normalizarBusqueda(a.nombre).includes(q)),
-          a => a.nombre, a => Math.max(0, ...a.albumes.map(x => x.anio || 0))) : [];
+          .filter(a => { const n = claveBusqueda(a.nombre); return palabras.every(p => n.includes(p)); }),
+          a => a.nombre || "", a => Math.max(0, ...a.albumes.map(x => x.anio || 0)), a => claveBusqueda(a.nombre)) : [];
 
     contenedor.innerHTML = "";
     if (albumesCoincidentes.length === 0 && cancionesCoincidentes.length === 0 && artistasCoincidentes.length === 0) {
       contenedor.innerHTML = '<div class="estado-vacio-musica">No se encontraron resultados.</div>';
       return;
     }
+    if (cancionesIncompletas) {
+      const aviso = document.createElement("div");
+      aviso.className = "estado-vacio-musica";
+      aviso.textContent = "Algunos álbumes no pudieron cargarse todavía; vuelve a buscar en unos segundos para ver todas las canciones.";
+      contenedor.appendChild(aviso);
+    }
+
+    // sección con "Mostrar más": ya no se recortan los resultados (antes solo se veían 12 álbumes
+    // y 15 canciones aunque el título dijera "Álbumes · 40")
+    const montarSeccion = (titulo, total, cuerpo, inicial, paso, pintar) => {
+      const seccion = document.createElement("div");
+      seccion.className = "seccion-resultado-busqueda";
+      seccion.innerHTML = `<h3 class="titulo-seccion-resultado">${titulo} · ${total}</h3>`;
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "btn-ver-mas-resultados";
+      let mostrados = 0;
+      const avanzar = () => {
+        const hastaN = Math.min(total, mostrados + (mostrados === 0 ? inicial : paso));
+        pintar(mostrados, hastaN);
+        mostrados = hastaN;
+        const quedan = total - mostrados;
+        boton.classList.toggle("oculto", quedan <= 0);
+        boton.textContent = `Mostrar más (${quedan} restantes)`;
+      };
+      boton.addEventListener("click", avanzar);
+      seccion.appendChild(cuerpo);
+      seccion.appendChild(boton);
+      contenedor.appendChild(seccion);
+      avanzar();
+    };
 
     if (artistasCoincidentes.length > 0) {
-      const seccion = document.createElement("div");
-      seccion.className = "seccion-resultado-busqueda";
-      seccion.innerHTML = `<h3 class="titulo-seccion-resultado">Artistas · ${artistasCoincidentes.length}</h3>`;
-      artistasCoincidentes.slice(0, lim(6)).forEach(({ nombre, albumes: albumesDelArtista }) => {
-        seccion.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos, "item-artista fila-artista-resultado"));
+      const cuerpo = document.createElement("div");
+      cuerpo.style.cssText = "display:flex;flex-direction:column;gap:8px";
+      montarSeccion("Artistas", artistasCoincidentes.length, cuerpo, f.tipo === "artistas" ? 30 : 6, 30, (d, h) => {
+        artistasCoincidentes.slice(d, h).forEach(({ nombre, albumes: albumesDelArtista }) => {
+          cuerpo.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos, "item-artista fila-artista-resultado"));
+        });
       });
-      contenedor.appendChild(seccion);
     }
-
     if (albumesCoincidentes.length > 0) {
-      const seccion = document.createElement("div");
-      seccion.className = "seccion-resultado-busqueda";
-      seccion.innerHTML = `<h3 class="titulo-seccion-resultado">Álbumes · ${albumesCoincidentes.length}</h3><div class="grid-albumes grid-resultados"></div>`;
-      pintarGridAlbumes(albumesCoincidentes.slice(0, lim(12)), seccion.querySelector(".grid-resultados"));
-      contenedor.appendChild(seccion);
-    }
-
-    if (cancionesCoincidentes.length > 0) {
-      const seccion = document.createElement("div");
-      seccion.className = "seccion-resultado-busqueda";
-      seccion.innerHTML = `<h3 class="titulo-seccion-resultado">Canciones · ${cancionesCoincidentes.length}</h3>`;
-      const listaCanciones = cancionesCoincidentes.slice(0, lim(15));
-      listaCanciones.forEach((cancion, indice) => {
-        seccion.appendChild(crearFilaCancion(cancion, listaCanciones, indice));
+      const cuerpo = document.createElement("div");
+      cuerpo.className = "grid-albumes grid-resultados";
+      montarSeccion("Álbumes", albumesCoincidentes.length, cuerpo, f.tipo === "albumes" ? 36 : 12, 36, (d, h) => {
+        pintarGridAlbumes(albumesCoincidentes.slice(0, h), cuerpo);
       });
-      contenedor.appendChild(seccion);
+    }
+    if (cancionesCoincidentes.length > 0) {
+      const cuerpo = document.createElement("div");
+      cuerpo.style.cssText = "display:flex;flex-direction:column;gap:8px";
+      montarSeccion("Canciones", cancionesCoincidentes.length, cuerpo, f.tipo === "canciones" ? 50 : 15, 50, (d, h) => {
+        for (let i = d; i < h; i++) cuerpo.appendChild(crearFilaCancion(cancionesCoincidentes[i], cancionesCoincidentes, i));
+      });
     }
   } catch (e) {
-    contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+    if (miBusqueda === contadorBusquedaMusica) contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
 }
 
@@ -4875,21 +4962,39 @@ function programarRegistroReproduccion(cancionId) {
 
 // ---- aleatorio: todas las canciones de la librería, mezcladas ----
 let cachePorMezclarTodo = null; // cachea la lista de canciones para no re-pedir todos los álbumes cada vez
+const cancionesPorAlbum = new Map(); // albumId -> canciones ya descargadas
+let cancionesIncompletas = false; // true si algún álbum no pudo cargarse (se reintenta en la próxima búsqueda)
 async function obtenerTodasLasCanciones() {
-  if (cachePorMezclarTodo) return cachePorMezclarTodo;
+  if (cachePorMezclarTodo && !cancionesIncompletas) return cachePorMezclarTodo;
   const albumes = await obtenerTodosLosAlbumes();
-  // Antes se pedía el detalle de cada álbum en serie (uno espera a que termine
-  // el anterior), lo que hacía esto lentísimo con muchos álbumes. Ahora se
-  // piden todos en paralelo; si alguno falla, se ignora y se sigue con el resto.
-  const resultados = await Promise.allSettled(
-    albumes.map(album => apiMusica(`/api/albumes/${album.id}`))
-  );
+  // Antes se pedían TODOS los álbumes a la vez: con muchos álbumes el servidor/navegador
+  // rechazaba parte de las peticiones y esas canciones se perdían en silencio (y quedaban
+  // fuera de la búsqueda hasta recargar). Ahora se piden de a 8 con reintentos, y los que
+  // sigan fallando se vuelven a intentar la próxima vez en vez de darse por perdidos.
+  const faltan = albumes.filter(a => !cancionesPorAlbum.has(a.id));
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < faltan.length) {
+      const album = faltan[siguiente++];
+      for (let intento = 0; intento < 3; intento++) {
+        try {
+          const datos = await apiMusica(`/api/albumes/${album.id}`);
+          cancionesPorAlbum.set(album.id, datos.canciones || []);
+          break;
+        } catch (e) {
+          await new Promise(r => setTimeout(r, 300 * (intento + 1)));
+        }
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(8, faltan.length) }, trabajador));
+  cancionesIncompletas = albumes.some(a => !cancionesPorAlbum.has(a.id));
   const todas = [];
-  resultados.forEach((resultado, indice) => {
-    if (resultado.status !== "fulfilled") return;
-    const album = albumes[indice];
+  albumes.forEach(album => {
+    const lista = cancionesPorAlbum.get(album.id);
+    if (!lista) return;
     const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
-    resultado.value.canciones.forEach(c => {
+    lista.forEach(c => {
       todas.push({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, anio: album.anio, portadaUrl, albumId: album.id, claveCd: album.clave_cd });
     });
   });
