@@ -1100,6 +1100,161 @@ html, body {
 .cabecera-seccion-recientes { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .link-borrar-recientes { background: none; border: none; color: var(--turquesa); font-size: 12px; cursor: pointer; padding: 0; }
 .link-borrar-recientes:hover { text-decoration: underline; }
+
+#cabecera-albumes, #cabecera-busqueda-global {
+  position: sticky; top: 0; z-index: 6; display: flex; align-items: center; gap: 10px;
+  padding: 4px 3px 12px; margin: 0 -3px; background: linear-gradient(var(--tarjeta-bg) 78%, rgba(251,250,255,0));
+}
+.buscador {
+  position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px;
+  min-height: 54px; padding: 0 7px 0 17px; border-radius: 20px; border: 1.5px solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #ddd2f0, #cfe8e4) border-box;
+  box-shadow: 0 8px 22px rgba(80, 45, 110, 0.10), 0 1px 2px rgba(45, 25, 65, 0.06);
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.buscador:focus-within {
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #14a89c, #7b55c9 58%, #d46bb0) border-box;
+  box-shadow: 0 12px 30px rgba(123, 85, 201, 0.22), 0 0 0 4px rgba(15, 145, 135, 0.10);
+}
+.buscador-lupa { flex: none; color: #9a8cb0; transition: color 0.2s, transform 0.25s cubic-bezier(.2,.8,.2,1); }
+.buscador:focus-within .buscador-lupa { color: var(--turquesa); transform: scale(1.12) rotate(-8deg); }
+.buscador input[type="text"] {
+  flex: 1; min-width: 0; width: 100%; margin: 0 !important; padding: 16px 6px !important;
+  border: none !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
+  font-size: 16px; font-weight: 600; font-family: inherit; color: var(--morado-oscuro); outline: none;
+  -webkit-appearance: none; appearance: none; text-overflow: ellipsis;
+}
+.buscador input[type="text"]::placeholder { color: #a99bbf; font-weight: 500; }
+.buscador-limpiar {
+  flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%; background: rgba(138, 122, 160, 0.16); color: #6a5a80; cursor: pointer; padding: 0;
+  transition: background 0.15s, transform 0.12s;
+}
+.buscador-limpiar:hover { background: rgba(200, 50, 65, 0.14); color: var(--rojo-apagado); }
+.buscador-limpiar:active { transform: scale(0.9); }
+.buscador-filtros-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 7px; border: none; cursor: pointer;
+  background: rgba(15, 145, 135, 0.10); color: var(--turquesa); font-family: inherit; font-size: 12.5px; font-weight: 800;
+  padding: 9px 12px; border-radius: 14px; transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.buscador-filtros-btn:active { transform: scale(0.95); }
+.buscador-filtros-btn[aria-expanded="true"] { background: var(--turquesa); color: #fff; }
+.buscador-filtros-btn .badge-filtros {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; line-height: 18px; text-align: center;
+  background: var(--morado-oscuro); color: #fff;
+}
+.buscador-filtros-btn[aria-expanded="true"] .badge-filtros { background: #fff; color: var(--turquesa); }
+@media (max-width: 400px) { .buscador-filtros-btn .txt-filtros { display: none; } .buscador-filtros-btn { padding: 9px 10px; } }
+/* barrita animada mientras busca */
+.buscador::after {
+  content: ""; position: absolute; left: 22px; right: 22px; bottom: 5px; height: 2px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, transparent, #14a89c, #7b55c9, #d46bb0, transparent); background-size: 200% 100%;
+  transition: opacity 0.2s;
+}
+.buscador.buscando::after { opacity: 1; animation: buscador-barra 1s linear infinite; }
+.buscador.buscando .buscador-lupa { animation: buscador-pulso 0.9s ease-in-out infinite; }
+@keyframes buscador-barra { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes buscador-pulso { 50% { transform: scale(1.22); color: var(--turquesa); } }
+
+/* tipo de resultado: control segmentado */
+.barra-filtros { margin: 0 0 10px; gap: 10px; }
+.barra-filtros .filtros-tipo {
+  background: rgba(255, 255, 255, 0.7); border: 1px solid var(--tarjeta-borde); border-radius: 16px; padding: 4px; gap: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.barra-filtros .filtros-tipo .chip-filtro {
+  flex: 1; justify-content: center; border: none; background: transparent; box-shadow: none; border-radius: 12px; padding: 9px 12px;
+}
+.barra-filtros .filtros-tipo .chip-filtro:hover { background: rgba(15, 145, 135, 0.08); }
+.barra-filtros .filtros-tipo .chip-filtro.activo { background: linear-gradient(135deg, #14a89c, var(--turquesa)); color: #fff; box-shadow: 0 4px 12px rgba(15, 145, 135, 0.35); }
+/* filtros activos (cuando el panel está cerrado) */
+.filtros-activos { display: flex; flex-wrap: wrap; gap: 6px; }
+.filtros-activos:empty { display: none; }
+.barra-filtros.abierta .filtros-activos { display: none; }
+.chip-activo {
+  display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(15, 145, 135, 0.35); background: rgba(15, 145, 135, 0.09);
+  color: var(--turquesa); font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 8px 5px 11px; border-radius: 999px; cursor: pointer;
+}
+.chip-activo span { font-size: 10px; opacity: 0.7; }
+.chip-activo:hover { background: rgba(200, 50, 65, 0.09); border-color: rgba(200, 50, 65, 0.4); color: var(--rojo-apagado); }
+/* panel de filtros */
+.barra-filtros .filtros-extra { display: none; }
+.barra-filtros.abierta .filtros-extra {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; background: #fff; border: 1px solid var(--tarjeta-borde);
+  border-radius: 18px; box-shadow: 0 10px 26px rgba(80, 45, 110, 0.10); animation: panel-filtros 0.22s ease;
+}
+@keyframes panel-filtros { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.campo-filtro { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.campo-filtro > span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #8a7aa0; }
+.campo-filtro.ancho { grid-column: 1 / -1; }
+.barra-filtros .filtros-extra select,
+.barra-filtros .filtros-extra input[type=number] {
+  width: 100%; max-width: 100%; border-radius: 12px; padding: 10px 12px; font-size: 14px; background-color: #faf8ff; box-shadow: none;
+}
+.barra-filtros .filtros-extra select { padding-right: 32px; text-overflow: ellipsis; }
+.rango-anios { display: flex; align-items: center; gap: 8px; }
+.rango-anios i { font-style: normal; color: #a99bbf; }
+.barra-filtros .filtros-extra .chip-limpiar { grid-column: 1 / -1; justify-content: center; }
+@media (max-width: 360px) { .barra-filtros.abierta .filtros-extra { grid-template-columns: 1fr; } }
+
+/* resultados */
+.resumen-busqueda { font-size: 12.5px; color: #8a7aa0; padding: 0 2px; }
+.resumen-busqueda strong { color: var(--morado-oscuro); font-size: 14px; }
+.resumen-busqueda em { font-style: normal; font-weight: 700; color: var(--morado-oscuro); }
+.titulo-seccion-resultado { display: flex; align-items: center; gap: 10px; }
+.titulo-seccion-resultado::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--tarjeta-borde), transparent); }
+mark.coincidencia-busqueda { background: rgba(15, 145, 135, 0.17); color: #0a6a62; border-radius: 4px; padding: 0 1px; }
+.buscando-musica { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 26px 6px; font-size: 13px; color: #8a7aa0; }
+.spinner-busq { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(15, 145, 135, 0.2); border-top-color: var(--turquesa); animation: spin-busq 0.7s linear infinite; }
+@keyframes spin-busq { to { transform: rotate(360deg); } }
+.sin-resultados-busqueda { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 34px 14px; }
+.sin-resultados-icono { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #a99bbf; background: linear-gradient(135deg, #efe9f8, #dfe9f2); }
+.sin-resultados-titulo { font-size: 15px; font-weight: 800; color: var(--morado-oscuro); word-break: break-word; }
+.sin-resultados-ayuda { font-size: 12.5px; color: #8a7aa0; max-width: 260px; line-height: 1.4; }
+.sin-resultados-busqueda button { margin-top: 6px; border: 1px solid var(--turquesa); background: #fff; color: var(--turquesa); font-family: inherit; font-weight: 700; font-size: 12.5px; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+/* búsquedas recientes */
+.chips-busquedas-recientes .chip-busqueda-reciente {
+  background: #fff; border-color: var(--tarjeta-borde); padding: 2px 4px 2px 10px; box-shadow: 0 1px 3px rgba(45, 25, 65, 0.06);
+  color: var(--morado-oscuro); font-weight: 600; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.chips-busquedas-recientes .chip-busqueda-reciente::before {
+  content: ""; flex: none; width: 14px; height: 14px; opacity: 0.55; margin-right: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236a5a80' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.chips-busquedas-recientes .chip-busqueda-reciente:hover { border-color: var(--turquesa); box-shadow: 0 3px 10px rgba(15, 145, 135, 0.18); }
+@media (prefers-reduced-motion: reduce) { .buscador, .buscador *, .barra-filtros * { animation: none !important; transition: none !important; } }
+
+/* ===== ajustes 2: un solo buscador, más protagonista ===== */
+#cabecera-busqueda-global { padding: 6px 3px 14px; }
+.buscador {
+  min-height: 60px; padding: 0 8px 0 9px; gap: 6px; border-width: 2px; border-radius: 22px;
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #14a89c, #7b55c9 60%, #d46bb0) border-box;
+  box-shadow: 0 14px 32px rgba(123, 85, 201, 0.24), 0 2px 4px rgba(45, 25, 65, 0.08);
+}
+.buscador:focus-within { box-shadow: 0 16px 38px rgba(123, 85, 201, 0.34), 0 0 0 5px rgba(20, 168, 156, 0.16); transform: translateY(-1px); }
+.buscador-lupa, .buscador:focus-within .buscador-lupa {
+  width: 40px; height: 40px; padding: 10px; border-radius: 50%; color: #fff;
+  background: linear-gradient(135deg, #14a89c, #7b55c9); box-shadow: 0 4px 12px rgba(20, 168, 156, 0.4);
+}
+.buscador input[type="text"] { font-size: 17px !important; font-weight: 700; padding: 18px 4px !important; }
+.buscador.buscando .buscador-lupa { animation: buscador-pulso 0.9s ease-in-out infinite; }
+/* pestaña Álbumes: cabecera simple */
+#cabecera-albumes { justify-content: space-between; padding: 2px 3px 8px; }
+.titulo-vista-albumes { margin: 0; font-size: 20px; font-weight: 800; color: var(--morado-oscuro); flex: 1; }
+.btn-ir-buscar {
+  flex: none; display: inline-flex; align-items: center; gap: 7px; border: none; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 800; color: #fff; padding: 10px 16px; border-radius: 999px;
+  background: linear-gradient(135deg, #14a89c, #7b55c9); box-shadow: 0 6px 16px rgba(123, 85, 201, 0.3); transition: transform 0.12s;
+}
+.btn-ir-buscar:active { transform: scale(0.95); }
+/* artistas en los resultados: cuadrícula de círculos */
+.grid-artistas-resultado { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px 8px; }
+.grid-artistas-resultado .item-artista { cursor: pointer; border-radius: 16px; transition: transform 0.18s ease, background 0.15s; }
+.grid-artistas-resultado .item-artista:hover, .grid-artistas-resultado .item-artista:active { transform: translateY(-3px); background: rgba(15, 145, 135, 0.07); }
+.grid-artistas-resultado .avatar-artista { width: 80px; height: 80px; box-shadow: 0 6px 16px rgba(80, 45, 110, 0.2); border: 2px solid #fff; }
+.grid-artistas-resultado .artista-nombre {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; width: 100%;
+}
 .contador-albumes {
   flex: none; font-size: 11px; font-weight: 700; color: var(--turquesa);
   background: rgba(15, 145, 135, 0.1); border: 1px solid rgba(15, 145, 135, 0.25);
@@ -1270,6 +1425,175 @@ html, body {
 #menu-agregar-playlist.oculto { display: none; }
 #menu-agregar-playlist .tarjeta { max-height: 60vh; padding-bottom: calc(20px + var(--safe-bottom)); }
 /* --- playlists compartidas + miembros + admins --- */
+
+.carrusel-cds {
+  --lado: min(204px, 56vw);
+  position: relative; margin: 8px 0 22px; padding: 18px 0 16px; border-radius: 24px; overflow: hidden; outline: none;
+  background: radial-gradient(120% 85% at 50% 0%, #5d3c82 0%, #34204c 48%, #1d0f2d 100%);
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.10), inset 0 -14px 28px rgba(0, 0, 0, 0.38), 0 20px 38px rgba(45, 25, 65, 0.38);
+  user-select: none; -webkit-user-select: none;
+}
+.carrusel-cds:focus-visible { box-shadow: 0 0 0 3px rgba(15, 145, 135, 0.7), 0 20px 38px rgba(45, 25, 65, 0.38); }
+.carrusel-cds::after { /* "piso" oscuro bajo los CDs */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 48%; pointer-events: none; z-index: 1;
+  background: linear-gradient(180deg, rgba(10, 4, 18, 0), rgba(10, 4, 18, 0.34));
+}
+.carrusel-escena {
+  position: relative; height: calc(var(--lado) + 52px); perspective: 980px; perspective-origin: 50% 32%;
+  transform-style: preserve-3d; touch-action: pan-y; cursor: grab;
+}
+.carrusel-escena.arrastrando { cursor: grabbing; }
+.carrusel-escena.arrastrando .cd-slot { transition: none; }
+.cd-slot {
+  position: absolute; top: 24px; left: 50%; width: var(--lado); height: var(--lado); margin-left: calc(var(--lado) / -2);
+  transform-style: preserve-3d; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.62s cubic-bezier(.2, .8, .2, 1), opacity 0.45s ease;
+  will-change: transform;
+}
+.cd-slot:focus-visible .cd-pl-caja { box-shadow: 0 0 0 3px rgba(15, 145, 135, 0.85), 0 18px 30px rgba(0, 0, 0, 0.45); }
+.cd-pl-caja {
+  position: absolute; inset: 0; border-radius: 12px; z-index: 1;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.45);
+  -webkit-box-reflect: below 5px linear-gradient(transparent 60%, rgba(255, 255, 255, 0.22));
+}
+.cd-pl-portada {
+  position: absolute; inset: 0; border-radius: 12px; overflow: hidden;
+  background: linear-gradient(135deg, hsl(var(--h) 68% 52%), hsl(var(--h2) 60% 34%));
+}
+.cd-pl-nota { position: absolute; right: 8px; top: 6px; font-size: 128px; line-height: 1; color: rgba(255, 255, 255, 0.2); }
+.cd-pl-brillo { /* reflejo diagonal del plástico del estuche */
+  position: absolute; inset: 0; border-radius: 12px; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.10) 100%);
+}
+.cd-pl-nombre {
+  position: absolute; z-index: 3; left: 30px; right: 14px; bottom: 14px; color: #fff; font-size: 15px; font-weight: 800; line-height: 1.2; pointer-events: none;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;
+}
+.cd-pl-fondo-nombre { position: absolute; left: 0; right: 0; bottom: 0; height: 55%; border-radius: 0 0 12px 12px; pointer-events: none; background: linear-gradient(180deg, rgba(20, 8, 32, 0), rgba(20, 8, 32, 0.6)); }
+.cd-pl-atenua { position: absolute; inset: 0; border-radius: 12px; pointer-events: none; background: rgba(20, 8, 32, 0.9); opacity: var(--at, 0); transition: opacity 0.5s ease; }
+.carrusel-escena.arrastrando .cd-pl-atenua { transition: none; }
+.cd-pl-disco {
+  position: absolute; z-index: 0; top: 8%; right: 0; width: 82%; aspect-ratio: 1; opacity: 0; pointer-events: none;
+  background: var(--cd-imagen-disco) center / contain no-repeat; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  transition: right 0.6s cubic-bezier(.2, .8, .2, 1) 0.12s, opacity 0.25s;
+  animation: girar-disco-cd 6s linear infinite paused;
+}
+.cd-slot.activo .cd-pl-disco { right: -34%; opacity: 1; animation-play-state: running; }
+.carrusel-flecha {
+  position: absolute; z-index: 4; top: calc(24px + var(--lado) / 2 - 19px); width: 38px; height: 38px; border: none; border-radius: 50%; padding: 0 0 3px;
+  font-size: 24px; line-height: 1; color: #fff; background: rgba(255, 255, 255, 0.16); cursor: pointer; transition: background 0.15s, opacity 0.2s, transform 0.1s;
+}
+.carrusel-flecha:hover { background: rgba(255, 255, 255, 0.28); }
+.carrusel-flecha:active { transform: scale(0.9); }
+.carrusel-flecha:disabled { opacity: 0.22; cursor: default; }
+.carrusel-flecha.izq { left: 8px; }
+.carrusel-flecha.der { right: 8px; }
+@media (hover: none) { .carrusel-flecha { display: none; } }
+.carrusel-pie { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 16px 0; text-align: center; color: #fff; }
+.carrusel-titulo { max-width: 100%; font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carrusel-sub { max-width: 100%; min-height: 16px; font-size: 12px; color: #cdbfe2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carrusel-principal { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
+.carrusel-acciones { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+.carrusel-btns { display: flex; gap: 8px; }
+.cd-pl-btn {
+  width: 38px; height: 38px; border: none; border-radius: 50%; padding: 0; font-size: 16px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.92); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3); transition: transform 0.12s;
+}
+.cd-pl-btn:active { transform: scale(0.9); }
+.carrusel-play {
+  display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 999px; padding: 10px 22px; font-size: 14px; font-weight: 800; color: #fff; cursor: pointer;
+  background: var(--turquesa); box-shadow: 0 4px 12px rgba(15, 145, 135, 0.45); transition: transform 0.12s, filter 0.15s;
+}
+.carrusel-play:hover { filter: brightness(1.08); }
+.carrusel-play:active { transform: scale(0.95); }
+.carrusel-abrir {
+  border: 1.5px solid rgba(255, 255, 255, 0.55); border-radius: 999px; padding: 9px 20px; font-size: 13.5px; font-weight: 700; color: #fff; cursor: pointer;
+  background: rgba(255, 255, 255, 0.10); transition: transform 0.12s, background 0.15s;
+}
+.carrusel-abrir:hover { background: rgba(255, 255, 255, 0.20); }
+.carrusel-abrir:active { transform: scale(0.95); }
+/* fotos propias de la playlist: portada del estuche y foto del CD */
+.cd-pl-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; -webkit-user-drag: none; }
+.cd-pl-portada.con-foto .cd-pl-nota { display: none; }
+.cd-pl-disco.cd-pl-disco-foto {
+  border-radius: 50%; background-size: cover; filter: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55), 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.cd-pl-disco.cd-pl-disco-foto::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 20%; height: 20%; transform: translate(-50%, -50%);
+  background: #2d1941; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+/* cabecera de la playlist abierta: botón de play + fotos */
+#cabecera-album-detalle #info-album-detalle { flex: 1; }
+.acciones-cabecera-playlist { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.btn-play-playlist {
+  height: 36px; border: none; border-radius: 999px; padding: 0 18px; font-size: 13.5px; font-weight: 800; color: #fff; cursor: pointer;
+  background: var(--turquesa); box-shadow: 0 4px 12px rgba(15, 145, 135, 0.4); transition: transform 0.12s, filter 0.15s;
+}
+.btn-play-playlist:hover { filter: brightness(1.08); }
+.btn-play-playlist:active { transform: scale(0.92); }
+.btn-play-playlist:disabled { opacity: 0.4; cursor: default; }
+.btn-foto-playlist { width: 36px; height: 36px; border: 1px solid var(--tarjeta-borde); border-radius: 50%; padding: 0; font-size: 14px; cursor: pointer; background: #fff; }
+.btn-foto-playlist:active { transform: scale(0.92); }
+/* detalle de la playlist: cabecera más grande */
+.cab-playlist { align-items: flex-start !important; padding-bottom: 4px; }
+#cabecera-album-detalle.cab-playlist .portada-album, #cabecera-album-detalle.cab-playlist .caja-cd-mini-detalle { width: 92px; }
+.cab-playlist #info-album-detalle .album-titulo { font-size: 18px; -webkit-line-clamp: 3; }
+.cab-playlist #info-album-detalle .album-artista { white-space: normal; }
+/* crear playlist */
+.nueva-playlist-vista {
+  display: flex; align-items: center; gap: 8px; padding: 5px 5px 5px 14px; border-radius: 999px; background: #fff;
+  border: 1.5px solid var(--tarjeta-borde); transition: border-color 0.15s, box-shadow 0.15s;
+}
+.nueva-playlist-vista:focus-within { border-color: var(--turquesa); box-shadow: 0 0 0 3px rgba(15, 145, 135, 0.15); }
+.nueva-playlist-icono { font-size: 18px; font-weight: 700; color: var(--turquesa); line-height: 1; }
+.nueva-playlist-vista input { flex: 1; min-width: 0; border: none !important; outline: none; background: transparent !important; box-shadow: none !important; padding: 8px 0; font-size: 14px; }
+.nueva-playlist-btn { border: none; border-radius: 999px; padding: 8px 18px; font-size: 13px; font-weight: 700; color: #fff; background: var(--turquesa); cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+.nueva-playlist-btn:disabled { opacity: 0.35; cursor: default; }
+.nueva-playlist-btn:not(:disabled):active { transform: scale(0.95); }
+/* estados vacíos */
+.vacio-playlists {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 30px 18px; margin: 6px 0;
+  border: 1.5px dashed var(--tarjeta-borde); border-radius: 18px; background: rgba(255, 255, 255, 0.55); color: #8a7aa0; font-size: 12.5px;
+}
+.vacio-playlists strong { font-size: 14.5px; color: #502d6e; }
+.vacio-playlists-icono { font-size: 38px; line-height: 1; margin-bottom: 4px; }
+/* insignias de las tarjetas y puntos del carrusel */
+.cd-pl-insignias { position: absolute; top: 10px; left: 30px; right: 12px; display: flex; gap: 6px; z-index: 3; pointer-events: none; }
+.cd-pl-insignias span { background: rgba(20, 8, 32, 0.55); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.carrusel-puntos { display: flex; justify-content: center; gap: 7px; margin-top: 10px; }
+.carrusel-puntos:empty { display: none; }
+.carrusel-punto { position: relative; width: 8px; height: 8px; border: none; border-radius: 999px; padding: 0; background: rgba(255, 255, 255, 0.3); cursor: pointer; transition: width 0.25s, background 0.25s; }
+.carrusel-punto::after { content: ""; position: absolute; inset: -9px -4px; }
+.carrusel-punto.activo { width: 22px; background: var(--turquesa); }
+.carrusel-play:disabled { opacity: 0.45; cursor: default; filter: none; }
+.carrusel-contador:empty { display: none; }
+/* aviso flotante */
+.aviso-flotante-playlist {
+  position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); transform: translateX(-50%); z-index: 90; max-width: min(88vw, 420px);
+  padding: 11px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #fff; text-align: center;
+  background: rgba(45, 25, 65, 0.96); box-shadow: 0 8px 24px rgba(20, 8, 32, 0.4); animation: aviso-playlist-entra 0.25s ease;
+}
+.aviso-flotante-playlist.sale { opacity: 0; transition: opacity 0.45s ease; }
+@keyframes aviso-playlist-entra { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* menú de fotos de la playlist */
+#menu-fotos-playlist { position: fixed; inset: 0; background: rgba(30, 15, 45, 0.55); z-index: 60; display: flex; align-items: flex-end; }
+#menu-fotos-playlist.oculto { display: none; }
+#menu-fotos-playlist .tarjeta { max-height: 80vh; overflow-y: auto; padding-bottom: calc(20px + var(--safe-bottom)); }
+.fila-foto-playlist { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0eaf8; }
+.vista-foto-playlist {
+  width: 64px; height: 64px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(135deg, #8a6cb0, #4a2d6a) center / cover no-repeat; border: 1px solid var(--tarjeta-borde);
+}
+.vista-foto-playlist.redonda { border-radius: 50%; }
+.texto-foto-playlist { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #8a7aa0; }
+.texto-foto-playlist strong { font-size: 13.5px; color: #502d6e; }
+.botones-foto-playlist { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.botones-foto-playlist .secundario { padding: 6px 12px; font-size: 12.5px; }
+.botones-foto-playlist .secundario:disabled { opacity: 0.4; }
+.nota-fotos-playlist { margin: 10px 0 4px; font-size: 11.5px; color: #8a7aa0; }
+.carrusel-contador { margin-top: 6px; font-size: 11.5px; color: #b9a9d4; }
+@media (prefers-reduced-motion: reduce) { .cd-slot, .cd-pl-disco, .cd-pl-atenua { animation: none !important; transition: none !important; } }
 .insignia-compartida { display: inline-block; margin-left: 6px; background: #e6f4f2; color: var(--turquesa, #0f9187); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; vertical-align: middle; }
 .item-playlist .sub-playlist { display: block; font-size: 11.5px; font-weight: 400; color: #8a7aa0; margin-top: 2px; }
 .item-playlist .btn-texto { background: none; border: 1px solid var(--tarjeta-borde); border-radius: 8px; padding: 5px 9px; font-size: 12px; color: #502d6e; }
@@ -1292,6 +1616,22 @@ html, body {
 .opcion-playlist-menu { padding: 11px 2px; font-size: 14px; color: #502d6e; border-bottom: 1px solid #f0eaf8; background: none; border-left: none; border-right: none; border-top: none; text-align: left; }
 
 /* --- admin --- */
+
+#btn-agregar-actual { background: none; border: none; font-size: 24px; line-height: 1; font-weight: 700; color: var(--turquesa); padding: 4px 8px; flex: none; border-radius: 50%; transition: background 0.15s, transform 0.1s; }
+#btn-agregar-actual:active { transform: scale(0.85); }
+#reproductor-actual.con-fondo #btn-agregar-actual { color: #7ee7dd; }
+#portada-reproductor-actual-contenedor { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+#destino-agregar-playlist { font-size: 12.5px; color: #8a7aa0; margin: -2px 0 10px; overflow-wrap: anywhere; }
+#destino-agregar-playlist:empty { display: none; }
+#modo-agregar-playlist { display: flex; gap: 6px; margin: 0 0 10px; }
+#modo-agregar-playlist.oculto { display: none; }
+#modo-agregar-playlist button { flex: 1; padding: 8px 6px; font-size: 12.5px; font-weight: 700; border: 1px solid var(--tarjeta-borde); border-radius: 999px; background: #fff; color: #502d6e; }
+#modo-agregar-playlist button.activo { background: var(--turquesa); border-color: var(--turquesa); color: #fff; }
+.opcion-playlist-menu.rapida, .opcion-playlist-menu.nueva { width: 100%; color: var(--turquesa); font-weight: 700; }
+.fila-nueva-en-menu { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0eaf8; }
+.fila-nueva-en-menu input { flex: 1; min-width: 0; }
+.btn-agregar-album { border: 1px solid var(--turquesa); color: var(--turquesa); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+.btn-agregar-album:active { transform: scale(0.94); }
 #vista-admin-musica textarea, #vista-admin-musica input[type="text"], #vista-admin-musica input[type="number"] {
   border: 1px solid var(--tarjeta-borde); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit;
 }
@@ -1670,6 +2010,73 @@ html, body {
 .artista-nombre { font-size: 12.5px; font-weight: 700; color: var(--morado-oscuro); line-height: 1.25; }
 .artista-conteo { font-size: 11px; color: #8a7aa0; }
 
+#vista-inicio-musica { gap: 18px; padding-bottom: 10px; }
+#hero-inicio {
+  position: relative; overflow: hidden; border-radius: 20px; padding: 20px 20px 22px;
+  background: linear-gradient(135deg, var(--morado-oscuro) 0%, #5b2f86 55%, var(--turquesa) 130%);
+  color: #fff; box-shadow: 0 10px 26px rgba(45, 25, 65, 0.28);
+  animation: inicio-aparece 0.4s ease backwards;
+}
+#hero-inicio::before, #hero-inicio::after {
+  content: ""; position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,0.22), rgba(255,255,255,0) 70%);
+}
+#hero-inicio::before { width: 170px; height: 170px; right: -40px; top: -60px; }
+#hero-inicio::after { width: 120px; height: 120px; right: 60px; bottom: -70px; opacity: 0.7; }
+#hero-saludo { position: relative; font-size: 21px; font-weight: 800; letter-spacing: 0.2px; }
+#hero-sub { position: relative; margin-top: 3px; font-size: 13px; color: rgba(255,255,255,0.78); }
+.seccion-inicio { gap: 10px; animation: inicio-aparece 0.45s ease backwards; }
+.seccion-inicio:nth-of-type(1) { animation-delay: 0.05s; }
+.seccion-inicio:nth-of-type(2) { animation-delay: 0.1s; }
+.seccion-inicio:nth-of-type(3) { animation-delay: 0.15s; }
+.seccion-inicio:nth-of-type(4) { animation-delay: 0.2s; }
+.seccion-inicio:nth-of-type(5) { animation-delay: 0.25s; }
+@keyframes inicio-aparece { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.titulo-seccion-inicio {
+  display: flex; align-items: center; gap: 8px; margin: 2px 0 0; padding-left: 10px;
+  font-size: 15.5px; font-weight: 800; color: var(--morado-oscuro); letter-spacing: 0.1px;
+  border-left: 4px solid var(--turquesa); border-radius: 2px; line-height: 1.2;
+}
+.titulo-seccion-inicio .ico-seccion { font-size: 16px; }
+.sub-seccion-inicio {
+  margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--turquesa);
+  background: rgba(15, 145, 135, 0.1); border: 1px solid rgba(15, 145, 135, 0.25);
+  border-radius: 999px; padding: 2px 9px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+#vista-inicio-musica .carrusel-musica {
+  gap: 14px; padding: 4px 4px 10px; margin: 0 -4px;
+  scrollbar-width: none;
+}
+#vista-inicio-musica .carrusel-musica::-webkit-scrollbar { display: none; }
+#vista-inicio-musica .tarjeta-carrusel { width: 128px; }
+#vista-inicio-musica .tarjeta-carrusel .portada-album { border-radius: 14px; box-shadow: 0 6px 16px rgba(80, 45, 110, 0.22); }
+#vista-inicio-musica .titulo-carrusel { font-size: 12.5px; }
+/* álbumes con caja de CD dentro del carrusel (deja lugar para que el disco asome) */
+#vista-inicio-musica .carrusel-albumes { gap: 22px; padding-left: 16px; }
+#vista-inicio-musica .carrusel-albumes .item-album {
+  flex: none; width: 150px; scroll-snap-align: start; animation-duration: 0.4s;
+}
+#vista-inicio-musica .carrusel-albumes .album-titulo { font-size: 13px; }
+/* esqueletos de carga */
+.esqueleto-tarjeta { flex: none; width: 128px; display: flex; flex-direction: column; gap: 7px; }
+.esqueleto-tarjeta.esqueleto-cd { width: 150px; }
+.esqueleto-img, .esqueleto-linea {
+  border-radius: 12px; background: linear-gradient(100deg, #e6def2 30%, #f4effb 50%, #e6def2 70%);
+  background-size: 220% 100%; animation: esqueleto-brillo 1.3s linear infinite;
+}
+.esqueleto-img { width: 100%; aspect-ratio: 1; }
+.esqueleto-linea { height: 10px; width: 90%; border-radius: 6px; }
+.esqueleto-linea.corta { width: 55%; }
+@keyframes esqueleto-brillo { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+
+/* arrastre de carruseles con mouse */
+.carrusel-musica { cursor: grab; overscroll-behavior-x: contain; }
+.carrusel-musica img { -webkit-user-drag: none; user-select: none; }
+.carrusel-musica.arrastrando { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+.carrusel-musica.arrastrando * { pointer-events: none; }
+/* el primer álbum deja lugar a la izquierda para el disco, y el "snap" respeta ese margen */
+#vista-inicio-musica .carrusel-albumes { padding-left: 38px; scroll-padding-left: 38px; }
+
 </style>
 <style id="estilos-camara">
 #panel-camara{position:fixed;inset:0;z-index:6;display:flex;flex-direction:column;gap:10px;padding:calc(54px + var(--safe-top) + 10px) 12px calc(var(--safe-bottom) + 14px);background:radial-gradient(circle at 50% 0%,#0e2a3a,#050b14 70%);color:#bffcf5;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -1909,7 +2316,7 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
           <div id="velo-reproductor-actual"></div>
           <div id="contenido-reproductor-actual">
             <div class="fila-cabecera-reproductor">
-              <div id="portada-reproductor-actual-contenedor">
+              <div id="portada-reproductor-actual-contenedor" title="Mantené presionado: elegir playlist · Doble toque: agregar a la última playlist usada">
                 <img id="portada-reproductor-actual" class="oculto" alt="" />
                 <div id="portada-reproductor-actual-vacia">♪</div>
               </div>
@@ -1918,6 +2325,7 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
                 <div id="subtitulo-cancion"></div>
               </div>
               <button id="btn-jyam" aria-label="Jyam"><svg viewBox="0 0 24 24"><rect x="1.5" y="4" width="7" height="16" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="17.6" r="0.9" fill="currentColor"/><rect x="15.5" y="4" width="7" height="16" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="17.6" r="0.9" fill="currentColor"/><path d="M9.6 9.2c1.6 1 1.6 4.6 0 5.6M14.4 9.2c-1.6 1-1.6 4.6 0 5.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+              <button id="btn-agregar-actual" aria-label="Agregar a playlist" title="Agregar a playlist (tecla P)">＋</button>
               <button id="btn-favorito-actual" aria-label="Favorito">♡</button>
             </div>
             <div class="fila-visualizador">
@@ -1957,27 +2365,43 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
         <!-- ---- canciones sueltas (por defecto) ---- -->
         <!-- ---- inicio: estilo Spotify (populares / recientes / más escuchados / recomendado) ---- -->
         <div id="vista-inicio-musica" class="vista-musica activa">
-          <div class="seccion-inicio">
-            <h3 class="titulo-seccion-inicio">🔥 Más populares</h3>
-            <div class="carrusel-musica" id="carrusel-populares"></div>
+          <div id="hero-inicio">
+            <div id="hero-saludo">Hola</div>
+            <div id="hero-sub">¿Qué querés escuchar hoy?</div>
           </div>
           <div class="seccion-inicio">
-            <h3 class="titulo-seccion-inicio">🕘 Tus más recientes</h3>
+            <h3 class="titulo-seccion-inicio"><span class="ico-seccion">✨</span>Recomendado para ti<span class="sub-seccion-inicio">Álbumes</span></h3>
+            <div class="carrusel-musica carrusel-albumes" id="carrusel-recomendado"></div>
+          </div>
+          <div class="seccion-inicio">
+            <h3 class="titulo-seccion-inicio"><span class="ico-seccion">💿</span>Últimos álbumes que escuchaste</h3>
+            <div class="carrusel-musica carrusel-albumes" id="carrusel-recientes-albumes"></div>
+          </div>
+          <div class="seccion-inicio">
+            <h3 class="titulo-seccion-inicio"><span class="ico-seccion">🎵</span>Últimas canciones que escuchaste</h3>
             <div class="carrusel-musica" id="carrusel-recientes"></div>
           </div>
           <div class="seccion-inicio">
-            <h3 class="titulo-seccion-inicio">🎧 Tus más escuchados</h3>
-            <div class="carrusel-musica" id="carrusel-mas-escuchados"></div>
+            <h3 class="titulo-seccion-inicio"><span class="ico-seccion">🔥</span>Más populares</h3>
+            <div class="carrusel-musica" id="carrusel-populares"></div>
           </div>
           <div class="seccion-inicio">
-            <h3 class="titulo-seccion-inicio">✨ Recomendado para ti</h3>
-            <div class="carrusel-musica" id="carrusel-recomendado"></div>
+            <h3 class="titulo-seccion-inicio"><span class="ico-seccion">🎧</span>Tus más escuchados</h3>
+            <div class="carrusel-musica" id="carrusel-mas-escuchados"></div>
           </div>
         </div>
 
         <div id="vista-busqueda-musica" class="vista-musica">
           <div id="cabecera-busqueda-global">
-            <input id="buscador-global-musica" type="text" placeholder="Buscar álbumes, canciones o artistas…" />
+            <div class="buscador">
+              <svg class="buscador-lupa" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+              <input id="buscador-global-musica" type="text" placeholder="¿Qué quieres escuchar?" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Buscar" />
+              <button type="button" class="buscador-limpiar oculto" aria-label="Borrar búsqueda"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+              <button type="button" class="buscador-filtros-btn" aria-expanded="false" aria-label="Filtros">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h7M17 6h3M4 12h3M13 12h7M4 18h9M19 18h1"/><circle cx="14" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="16" cy="18" r="2"/></svg>
+                <span class="txt-filtros">Filtros</span><span class="badge-filtros oculto">0</span>
+              </button>
+            </div>
           </div>
           <div class="barra-filtros" id="filtros-busqueda-global"></div>
           <div id="busqueda-inicial-musica">
@@ -1999,10 +2423,12 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
         <!-- ---- álbumes ---- -->
         <div id="vista-albumes-musica" class="vista-musica">
           <div id="cabecera-albumes">
-            <input id="buscador-albumes" type="text" placeholder="Buscar álbumes, canciones o artistas…" />
+            <h2 class="titulo-vista-albumes">Álbumes</h2>
             <span id="contador-albumes" class="contador-albumes oculto"></span>
+            <button type="button" id="btn-ir-buscar" class="btn-ir-buscar" aria-label="Ir al buscador">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>Buscar
+            </button>
           </div>
-          <div class="barra-filtros" id="filtros-albumes"></div>
           <div id="resultados-busqueda-musica" class="oculto"></div>
           <div id="contenedor-grid-albumes">
             <div id="grid-albumes" class="grid-albumes"></div>
@@ -2037,9 +2463,10 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
 
         <!-- ---- playlists ---- -->
         <div id="vista-playlists-musica" class="vista-musica">
-          <div class="fila-nueva-playlist">
-            <input id="input-nueva-playlist" type="text" placeholder="Nombre de la nueva playlist" />
-            <button id="btn-crear-playlist" class="secundario">Crear</button>
+          <div class="nueva-playlist-vista">
+            <span class="nueva-playlist-icono" aria-hidden="true">＋</span>
+            <input id="input-nueva-playlist" type="text" maxlength="60" placeholder="Nueva playlist…" autocomplete="off" />
+            <button id="btn-crear-playlist" type="button" class="nueva-playlist-btn" disabled>Crear</button>
           </div>
           <div id="lista-mis-playlists"></div>
         </div>
@@ -2223,8 +2650,38 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
     <div class="tarjeta">
       <div class="agarradera-tarjeta"></div>
       <h2>Agregar a playlist</h2>
+      <div id="destino-agregar-playlist"></div>
+      <div id="modo-agregar-playlist" class="oculto"></div>
       <div id="opciones-agregar-playlist"></div>
       <button id="btn-cerrar-menu-playlist" class="cerrar">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ================= MENÚ "FOTOS DE LA PLAYLIST" ================= -->
+  <div id="menu-fotos-playlist" class="oculto">
+    <div class="tarjeta">
+      <div class="agarradera-tarjeta"></div>
+      <h2 id="titulo-fotos-playlist">Fotos de la playlist</h2>
+      <div class="fila-foto-playlist">
+        <div class="vista-foto-playlist" id="vista-foto-portada">♪</div>
+        <div class="texto-foto-playlist"><strong>Portada</strong><span>Se ve en el estuche del CD.</span></div>
+        <div class="botones-foto-playlist">
+          <button type="button" class="secundario" id="btn-elegir-foto-portada">Elegir foto</button>
+          <button type="button" class="secundario" id="btn-quitar-foto-portada">Quitar</button>
+        </div>
+      </div>
+      <div class="fila-foto-playlist">
+        <div class="vista-foto-playlist redonda" id="vista-foto-cd">💿</div>
+        <div class="texto-foto-playlist"><strong>Disco del CD</strong><span>Sale girando del estuche.</span></div>
+        <div class="botones-foto-playlist">
+          <button type="button" class="secundario" id="btn-elegir-foto-cd">Elegir foto</button>
+          <button type="button" class="secundario" id="btn-quitar-foto-cd">Quitar</button>
+        </div>
+      </div>
+      <p class="nota-fotos-playlist">Las fotos las ven todas las personas que tienen esta playlist.</p>
+      <input type="file" accept="image/*" id="input-foto-portada" hidden />
+      <input type="file" accept="image/*" id="input-foto-cd" hidden />
+      <button id="btn-cerrar-fotos-playlist" class="cerrar">Listo</button>
     </div>
   </div>
 
@@ -2476,7 +2933,9 @@ body:has(#panel-kira:not(.oculto)) #reloj-widget { display:none; }
     </div>
   </footer>
 
-  <audio id="audio-elemento" playsinline preload="metadata"></audio>
+  <audio id="audio-elemento" playsinline preload="auto"></audio>
+  <!-- segundo elemento: precarga la canción siguiente y permite el fundido entre canciones -->
+  <audio id="audio-elemento-2" playsinline preload="auto"></audio>
   <!-- Copia "espejo", silenciosa e inaudible, que solo existe para alimentar
        el analizador de frecuencias real del visualizador ADN sin tocar el
        audio principal (ver comentario junto al visualizador más abajo). -->
@@ -4028,7 +4487,9 @@ function iniciarGeometriaFlotante() {
 // ---------------------------------------------------------------------
 // LIBRERÍA MUSICAL (catálogo compartido vía Worker + D1 + R2)
 // ---------------------------------------------------------------------
-const audioEl = document.getElementById("audio-elemento");
+const audioA = document.getElementById("audio-elemento");
+const audioB = document.getElementById("audio-elemento-2");
+let audioEl = audioA; // el que suena ahora: se alterna entre A y B en cada canción
 const panelMusica = document.getElementById("panel-musica");
 const btnPlayPausa = document.getElementById("btn-play-pausa");
 const barraProgreso = document.getElementById("barra-progreso");
@@ -4179,7 +4640,7 @@ document.getElementById("btn-musica-salir").addEventListener("click", () => {
   Almacen.guardar("gyan_musica_sesion", null);
   colaReproduccion = []; indiceColaActual = -1;
   ordenReproduccion = []; posicionEnOrden = -1;
-  audioEl.pause(); audioEl.removeAttribute("src");
+  finalizarFade(); limpiarElemento(audioA); limpiarElemento(audioB);
   document.getElementById("titulo-cancion").textContent = "Sin canción seleccionada";
   document.getElementById("subtitulo-cancion").textContent = "";
   imgPortadaActual.classList.add("oculto");
@@ -4197,24 +4658,62 @@ function hayFiltrosActivos() {
   const f = filtrosBusqueda;
   return f.tipo !== "todo" || !!f.artista || !!f.desde || !!f.hasta;
 }
+let filtrosAbiertos = false;
+const FILTROS_POR_DEFECTO = { tipo: "todo", artista: "", desde: "", hasta: "", orden: "relevancia", en: "todo" };
+const ETIQUETA_ORDEN = { az: "Orden: A → Z", za: "Orden: Z → A", nuevo: "Orden: año más nuevo", viejo: "Orden: año más viejo" };
+function contarFiltrosExtra() {
+  const f = filtrosBusqueda;
+  return (f.artista ? 1 : 0) + ((f.desde || f.hasta) ? 1 : 0) + (f.orden !== "relevancia" ? 1 : 0) + (f.en !== "todo" ? 1 : 0);
+}
+// deja coherentes los dos buscadores: botón de borrar, contador de filtros y panel abierto/cerrado
+function sincronizarBuscadores() {
+  const n = contarFiltrosExtra();
+  document.querySelectorAll(".buscador").forEach(b => {
+    const campo = b.querySelector("input[type=text]");
+    const x = b.querySelector(".buscador-limpiar");
+    if (x && campo) x.classList.toggle("oculto", !campo.value);
+    const btn = b.querySelector(".buscador-filtros-btn");
+    if (btn) {
+      btn.setAttribute("aria-expanded", String(filtrosAbiertos));
+      const badge = btn.querySelector(".badge-filtros");
+      badge.textContent = n;
+      badge.classList.toggle("oculto", n === 0);
+    }
+  });
+  ["filtros-busqueda-global"].forEach(id => {
+    const barra = document.getElementById(id);
+    if (barra) barra.classList.toggle("abierta", filtrosAbiertos);
+  });
+}
 function pintarBarrasFiltros() {
   const f = filtrosBusqueda;
   const opts = (lista, sel) => lista.map(([v, t]) => `<option value="${escaparHtml(v)}"${v === sel ? " selected" : ""}>${escaparHtml(t)}</option>`).join("");
-  const cv = (activo) => activo ? " con-valor" : "";
+  const cv = (activo) => activo ? ' class="con-valor"' : "";
   const hayExtra = hayFiltrosActivos() || f.en !== "todo" || f.orden !== "relevancia";
+  const activos = [];
+  if (f.artista) activos.push(["artista", `Artista: ${f.artista}`]);
+  if (f.desde || f.hasta) activos.push(["desde,hasta", `${f.desde || "…"} – ${f.hasta || "…"}`]);
+  if (f.en !== "todo") activos.push(["en", f.en === "titulo" ? "Solo título" : "Solo artista"]);
+  if (f.orden !== "relevancia") activos.push(["orden", ETIQUETA_ORDEN[f.orden]]);
   const html =
     `<div class="filtros-fila filtros-tipo">` +
-    [["todo", "✨ Todo"], ["artistas", "🎤 Artistas"], ["albumes", "💿 Álbumes"], ["canciones", "🎵 Canciones"]]
+    [["todo", "Todo"], ["artistas", "Artistas"], ["albumes", "Álbumes"], ["canciones", "Canciones"]]
       .map(([v, t]) => `<button type="button" class="chip-filtro${f.tipo === v ? " activo" : ""}" data-f="tipo" data-v="${v}">${t}</button>`).join("") +
-    `</div><div class="filtros-fila filtros-extra">` +
-    `<select data-f="artista" class="${cv(!!f.artista).trim()}" aria-label="Artista"><option value="">Todos los artistas</option>${opts(listaArtistasFiltro.map(n => [n, n]), f.artista)}</select>` +
-    `<select data-f="en" class="${cv(f.en !== "todo").trim()}" aria-label="Buscar en">${opts([["todo", "Título y artista"], ["titulo", "Solo título"], ["artista", "Solo artista"]], f.en)}</select>` +
-    `<input type="number" inputmode="numeric" data-f="desde" class="${cv(!!f.desde).trim()}" placeholder="Año desde" value="${escaparHtml(f.desde)}" min="1900" max="2100" />` +
-    `<input type="number" inputmode="numeric" data-f="hasta" class="${cv(!!f.hasta).trim()}" placeholder="Año hasta" value="${escaparHtml(f.hasta)}" min="1900" max="2100" />` +
-    `<select data-f="orden" class="${cv(f.orden !== "relevancia").trim()}" aria-label="Orden">${opts([["relevancia", "↕ Relevancia"], ["az", "↕ A → Z"], ["za", "↕ Z → A"], ["nuevo", "↕ Año: más nuevo"], ["viejo", "↕ Año: más viejo"]], f.orden)}</select>` +
-    (hayExtra ? `<button type="button" class="chip-filtro chip-limpiar" data-f="limpiar">✕ Limpiar</button>` : "") +
+    `</div>` +
+    `<div class="filtros-activos">` +
+    activos.map(([k, t]) => `<button type="button" class="chip-activo" data-f="quitar" data-k="${k}">${escaparHtml(t)}<span aria-hidden="true">✕</span></button>`).join("") +
+    `</div>` +
+    `<div class="filtros-extra">` +
+    `<label class="campo-filtro ancho"><span>Artista</span><select data-f="artista"${cv(!!f.artista)} aria-label="Artista"><option value="">Todos los artistas</option>${opts(listaArtistasFiltro.map(n => [n, n]), f.artista)}</select></label>` +
+    `<label class="campo-filtro"><span>Buscar en</span><select data-f="en"${cv(f.en !== "todo")} aria-label="Buscar en">${opts([["todo", "Título y artista"], ["titulo", "Solo título"], ["artista", "Solo artista"]], f.en)}</select></label>` +
+    `<label class="campo-filtro"><span>Ordenar por</span><select data-f="orden"${cv(f.orden !== "relevancia")} aria-label="Orden">${opts([["relevancia", "Relevancia"], ["az", "A → Z"], ["za", "Z → A"], ["nuevo", "Año: más nuevo"], ["viejo", "Año: más viejo"]], f.orden)}</select></label>` +
+    `<div class="campo-filtro ancho"><span>Año</span><div class="rango-anios">` +
+    `<input type="number" inputmode="numeric" data-f="desde"${cv(!!f.desde)} placeholder="Desde" value="${escaparHtml(f.desde)}" min="1900" max="2100" aria-label="Año desde" /><i>–</i>` +
+    `<input type="number" inputmode="numeric" data-f="hasta"${cv(!!f.hasta)} placeholder="Hasta" value="${escaparHtml(f.hasta)}" min="1900" max="2100" aria-label="Año hasta" /></div></div>` +
+    (hayExtra ? `<button type="button" class="chip-filtro chip-limpiar" data-f="limpiar">Restablecer filtros</button>` : "") +
     `</div>`;
-  ["filtros-busqueda-global", "filtros-albumes"].forEach(id => { document.getElementById(id).innerHTML = html; });
+  ["filtros-busqueda-global"].forEach(id => { document.getElementById(id).innerHTML = html; });
+  sincronizarBuscadores();
 }
 function prepararFiltros() {
   pintarBarrasFiltros();
@@ -4226,20 +4725,17 @@ function prepararFiltros() {
 }
 function alCambiarFiltro() {
   pintarBarrasFiltros();
-  if (document.getElementById("vista-albumes-musica").classList.contains("activa")) {
-    cargarAlbumes(document.getElementById("buscador-albumes").value.trim());
-    return;
-  }
   const valor = document.getElementById("buscador-global-musica").value.trim();
   if (!valor && !hayFiltrosActivos()) mostrarInicioBusqueda();
   else mostrarBusquedaGlobalMusica(valor, "resultados-busqueda-global");
 }
-["filtros-busqueda-global", "filtros-albumes"].forEach(id => {
+["filtros-busqueda-global"].forEach(id => {
   const barra = document.getElementById(id);
   barra.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-f]");
     if (!b) return;
-    if (b.dataset.f === "limpiar") Object.assign(filtrosBusqueda, { tipo: "todo", artista: "", desde: "", hasta: "", orden: "relevancia", en: "todo" });
+    if (b.dataset.f === "limpiar") Object.assign(filtrosBusqueda, FILTROS_POR_DEFECTO);
+    else if (b.dataset.f === "quitar") b.dataset.k.split(",").forEach(c => { filtrosBusqueda[c] = FILTROS_POR_DEFECTO[c]; });
     else filtrosBusqueda[b.dataset.f] = b.dataset.v;
     alCambiarFiltro();
   });
@@ -4251,20 +4747,39 @@ function alCambiarFiltro() {
   });
 });
 
+// ---- cableado de los buscadores: borrar, abrir filtros, Esc / Enter ----
+document.querySelectorAll(".buscador").forEach(b => {
+  const campo = b.querySelector("input[type=text]");
+  const limpiar = () => { campo.value = ""; sincronizarBuscadores(); campo.dispatchEvent(new Event("input", { bubbles: true })); };
+  campo.addEventListener("input", sincronizarBuscadores);
+  b.querySelector(".buscador-limpiar").addEventListener("click", () => { limpiar(); campo.focus(); });
+  b.querySelector(".buscador-filtros-btn").addEventListener("click", () => { filtrosAbiertos = !filtrosAbiertos; sincronizarBuscadores(); });
+  campo.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && campo.value) { e.preventDefault(); limpiar(); }
+    if (e.key === "Enter") {
+      campo.blur(); // en el celular esconde el teclado para ver los resultados
+      if (campo.id === "buscador-global-musica" && campo.value.trim()) guardarBusquedaReciente(campo.value);
+    }
+  });
+});
+
 // ---- pestañas ----
 function cambiarTabMusica(nombre) {
+  precalentarBusqueda();
   document.getElementById("vista-album-detalle").classList.add("oculto");
   document.getElementById("contenido-musica").classList.remove("oculto");
   document.querySelectorAll(".tab-musica").forEach(btn => btn.classList.toggle("activa", btn.dataset.vista === nombre));
   document.querySelectorAll(".vista-musica").forEach(v => v.classList.toggle("activa", v.id === `vista-${nombre}-musica`));
   if (nombre === "inicio") cargarInicio();
-  if (nombre === "busqueda" || nombre === "albumes") prepararFiltros();
+  if (nombre === "busqueda") prepararFiltros();
   if (nombre === "busqueda") {
     const campo = document.getElementById("buscador-global-musica");
     if (!campo.value.trim() && !hayFiltrosActivos()) mostrarInicioBusqueda();
-    setTimeout(() => campo.focus(), 50);
+    else mostrarBusquedaGlobalMusica(campo.value.trim(), "resultados-busqueda-global");
+    document.getElementById("vista-busqueda-musica").scrollTop = 0;
+    if (!hayFiltrosActivos() || campo.value.trim()) setTimeout(() => campo.focus(), 50);
   }
-  if (nombre === "albumes") cargarAlbumes(document.getElementById("buscador-albumes").value.trim());
+  if (nombre === "albumes") cargarAlbumes();
   if (nombre === "artistas") cargarArtistas();
   if (nombre === "aleatorio") cargarAleatorio();
   if (nombre === "favoritos") cargarFavoritos();
@@ -4274,6 +4789,36 @@ function cambiarTabMusica(nombre) {
 document.querySelectorAll(".tab-musica").forEach(btn => btn.addEventListener("click", () => cambiarTabMusica(btn.dataset.vista)));
 
 // ---- álbumes ----
+// ---- índice de canciones guardado en el dispositivo (la 1.ª búsqueda ya no tiene que bajar álbum por álbum) ----
+const CLAVE_INDICE_CANCIONES = "gyan_musica_indice_canciones_v1";
+const VIDA_INDICE_CANCIONES = 12 * 3600 * 1000;
+function hidratarIndiceCanciones() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CLAVE_INDICE_CANCIONES) || "null");
+    if (!d || !Array.isArray(d.a) || Date.now() - d.t > VIDA_INDICE_CANCIONES) return;
+    d.a.forEach(([id, lista]) => cancionesPorAlbum.set(id, lista.map(([cid, titulo]) => ({ id: cid, titulo }))));
+  } catch {}
+}
+function guardarIndiceCanciones() {
+  try {
+    const a = [];
+    cancionesPorAlbum.forEach((lista, id) => a.push([id, lista.map(c => [c.id, c.titulo])]));
+    localStorage.setItem(CLAVE_INDICE_CANCIONES, JSON.stringify({ t: Date.now(), a }));
+  } catch {} // si no cabe, simplemente no se guarda
+}
+// calienta álbumes, fotos y canciones en segundo plano apenas se abre la biblioteca
+let busquedaPrecalentada = false;
+function precalentarBusqueda() {
+  if (busquedaPrecalentada || !sesionMusica) return;
+  busquedaPrecalentada = true;
+  const ir = () => {
+    obtenerTodosLosAlbumes()
+      .then(() => obtenerMapaArtistasFotos().catch(() => {}))
+      .then(() => obtenerTodasLasCanciones())
+      .catch(() => { busquedaPrecalentada = false; });
+  };
+  if (window.requestIdleCallback) requestIdleCallback(ir, { timeout: 1500 }); else setTimeout(ir, 300);
+}
 let cacheAlbumesTodos = null; // colección completa de álbumes (para paginar/buscar sin volver a pedirla)
 async function obtenerTodosLosAlbumes(forzar = false) {
   if (cacheAlbumesTodos && !forzar) return cacheAlbumesTodos;
@@ -4307,6 +4852,22 @@ async function obtenerTodosLosAlbumes(forzar = false) {
     const totalPaginas = datos.totalPaginas ?? datos.total_paginas;
     if (typeof totalPaginas === "number" && pagina >= totalPaginas) break;
     if (typeof datos.total === "number" && todos.length >= datos.total) break;
+    if (pagina === 1 && typeof totalPaginas === "number" && totalPaginas > 1) {
+      // ya se sabe cuántas páginas hay: se piden las demás en paralelo en vez de una por una
+      const restantes = Array.from({ length: totalPaginas - 1 }, (_, i) => i + 2);
+      for (let i = 0; i < restantes.length; i += 6) {
+        const lotes = await Promise.all(restantes.slice(i, i + 6).map(p =>
+          apiMusica(`/api/albumes?porPagina=${TAMANO_PAGINA}&pagina=${p}`).catch(() => null)));
+        lotes.forEach(d => {
+          if (!d) { completo = false; return; }
+          (d.albumes || []).forEach(a => {
+            const clave = a.id ?? JSON.stringify(a);
+            if (!vistos.has(clave)) { vistos.add(clave); todos.push(a); }
+          });
+        });
+      }
+      break;
+    }
   }
   const mezclados = mezclarArreglo(todos);
   if (completo) cacheAlbumesTodos = mezclados;
@@ -4320,6 +4881,8 @@ function invalidarCachesMusica() {
   cancionesIncompletas = false;
   cacheAlbumesTodos = null;
   listaArtistasFiltro = [];
+  busquedaPrecalentada = false;
+  try { localStorage.removeItem(CLAVE_INDICE_CANCIONES); } catch {}
 }
 
 const ALBUMES_POR_PAGINA = 18;
@@ -4332,15 +4895,6 @@ async function cargarAlbumes(buscar = "") {
   const resultadosBusqueda = document.getElementById("resultados-busqueda-musica");
   const paginador = document.getElementById("paginador-albumes");
   const texto = buscar.trim();
-
-  if (texto || hayFiltrosActivos()) {
-    contenedorGrid.classList.add("oculto");
-    paginador.classList.add("oculto");
-    contador.classList.add("oculto");
-    resultadosBusqueda.classList.remove("oculto");
-    await mostrarBusquedaGlobalMusica(texto);
-    return;
-  }
 
   resultadosBusqueda.classList.add("oculto");
   contenedorGrid.classList.remove("oculto");
@@ -4442,10 +4996,9 @@ function crearItemArtista(nombreArtista, albumesDelArtista, mapaFotos, claseExtr
     <div class="artista-conteo">${cantidadAlbumes} álbum${cantidadAlbumes === 1 ? "" : "es"}</div>
   `;
   item.addEventListener("click", () => {
-    cambiarTabMusica("albumes");
-    const buscador = document.getElementById("buscador-albumes");
-    buscador.value = nombreArtista;
-    cargarAlbumes(nombreArtista);
+    Object.assign(filtrosBusqueda, FILTROS_POR_DEFECTO, { artista: nombreArtista, tipo: "albumes" });
+    document.getElementById("buscador-global-musica").value = "";
+    cambiarTabMusica("busqueda");
   });
   return item;
 }
@@ -4463,6 +5016,7 @@ async function cargarArtistas() {
     }
     const artistas = agruparAlbumesPorArtista(albumes);
     grid.innerHTML = "";
+    artistas.sort((x, y) => String(x.nombre).localeCompare(String(y.nombre), "es"));
     artistas.forEach(({ nombre, albumes: albumesDelArtista }) => {
       grid.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos));
     });
@@ -4476,32 +5030,48 @@ function pintarGridAlbumes(albumes, grid = document.getElementById("grid-albumes
     grid.innerHTML = `<div class="estado-vacio-musica">${mensajeVacio}</div>`;
     return;
   }
-  albumes.forEach((album, indice) => {
-    const btn = document.createElement("button");
-    btn.className = "item-album";
-    btn.style.animationDelay = `${Math.min(indice, 24) * 18}ms`;
-    const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
-    const portadaHtml = portadaUrl
-      ? `<img class="portada-album" src="${portadaUrl}" alt="" loading="lazy" />`
-      : `<div class="portada-album vacia">♪</div>`;
-    // si el álbum tiene un CD personalizado subido, se usa esa foto en el disco;
-    // si no, .cd-disco-mini ya trae el disco genérico por defecto (var(--cd-imagen-disco)).
-    const cdUrl = album.clave_cd ? `${ajustes.apiMusicaUrl}/api/cd/${album.id}` : null;
-    const discoHtml = cdUrl
-      ? `<div class="cd-disco-mini cd-disco-personalizado" style="background-image:url('${cdUrl}')"></div>`
-      : `<div class="cd-disco-mini"></div>`;
-    btn.innerHTML = `
-      <div class="caja-cd-mini">
-        <div class="cd-interior-mini">
-          ${discoHtml}
-          <div class="cd-marco-portada">${portadaHtml}<div class="cd-marco-overlay"></div></div>
-        </div>
+  albumes.forEach((album, indice) => grid.appendChild(crearItemAlbumCd(album, indice)));
+}
+// Tarjeta de álbum con caja de CD (la usan la grilla de Álbumes y el Inicio).
+function crearItemAlbumCd(album, indice = 0) {
+  const btn = document.createElement("button");
+  btn.className = "item-album";
+  btn.style.animationDelay = `${Math.min(indice, 24) * 18}ms`;
+  const portadaUrl = album.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${album.id}` : null;
+  const portadaHtml = portadaUrl
+    ? `<img class="portada-album" src="${portadaUrl}" alt="" loading="lazy" />`
+    : `<div class="portada-album vacia">♪</div>`;
+  // si el álbum tiene un CD personalizado subido, se usa esa foto en el disco;
+  // si no, .cd-disco-mini ya trae el disco genérico por defecto (var(--cd-imagen-disco)).
+  const cdUrl = album.clave_cd ? `${ajustes.apiMusicaUrl}/api/cd/${album.id}` : null;
+  const discoHtml = cdUrl
+    ? `<div class="cd-disco-mini cd-disco-personalizado" style="background-image:url('${cdUrl}')"></div>`
+    : `<div class="cd-disco-mini"></div>`;
+  btn.innerHTML = `
+    <div class="caja-cd-mini">
+      <div class="cd-interior-mini">
+        ${discoHtml}
+        <div class="cd-marco-portada">${portadaHtml}<div class="cd-marco-overlay"></div></div>
       </div>
-      <div class="album-titulo">${escaparHtml(album.titulo)}</div>
-      <div class="album-artista">${escaparHtml(album.artista)}</div>`;
-    btn.addEventListener("click", () => abrirAlbum(album.id));
-    grid.appendChild(btn);
-  });
+    </div>
+    <div class="album-titulo">${escaparHtml(album.titulo)}</div>
+    <div class="album-artista">${escaparHtml(album.artista)}</div>`;
+  btn.addEventListener("click", () => abrirAlbum(album.id));
+  // Las filas de canciones no siempre traen "clave_cd" desde el backend (mismo problema que ya
+  // tenía el reproductor), así que se prueba cargar la imagen del CD directamente; si existe se
+  // aplica como disco personalizado y si no, queda el disco genérico.
+  if (album.verificarCd && !album.clave_cd) {
+    const cdUrl = `${ajustes.apiMusicaUrl}/api/cd/${album.id}`;
+    const img = new Image();
+    img.onload = () => {
+      const disco = btn.querySelector(".cd-disco-mini");
+      if (!disco) return;
+      disco.classList.add("cd-disco-personalizado");
+      disco.style.backgroundImage = `url('${cdUrl}')`;
+    };
+    img.src = cdUrl;
+  }
+  return btn;
 }
 
 // ---- búsqueda unificada estilo Spotify: álbumes + canciones + artistas ----
@@ -4509,9 +5079,11 @@ let historialBusquedasRecientes = Almacen.cargar("gyan_busquedas_recientes", [])
 function guardarBusquedaReciente(texto) {
   const limpio = texto.trim();
   if (!limpio) return;
+  const bajo = limpio.toLowerCase();
+  // si "bad" ya estaba guardado y ahora se busca "bad bunny", se reemplaza en vez de acumular parciales
   historialBusquedasRecientes = [
     limpio,
-    ...historialBusquedasRecientes.filter(t => t.toLowerCase() !== limpio.toLowerCase()),
+    ...historialBusquedasRecientes.filter(t => { const tb = t.toLowerCase(); return tb !== bajo && !bajo.startsWith(tb); }),
   ].slice(0, 8);
   Almacen.guardar("gyan_busquedas_recientes", historialBusquedasRecientes);
 }
@@ -4583,13 +5155,61 @@ function clavesDe(item) {
   }
   return k;
 }
+// resalta en amarillo-turquesa las palabras buscadas (ignora tildes y mayúsculas)
+function resaltarCoincidencias(raiz, palabras) {
+  if (!palabras || palabras.length === 0) return;
+  raiz.querySelectorAll(".titulo-fila-cancion, .subtitulo-fila-cancion, .album-titulo, .album-artista, .artista-nombre").forEach(el => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodos = [];
+    while (walker.nextNode()) nodos.push(walker.currentNode);
+    nodos.forEach(nodo => {
+      if (nodo.parentNode.nodeName === "MARK") return;
+      const original = nodo.nodeValue;
+      let norm = "";
+      const mapa = [];
+      for (let i = 0; i < original.length; i++) {
+        const n = original[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        for (let j = 0; j < n.length; j++) { norm += n[j]; mapa.push(i); }
+      }
+      const rangos = [];
+      palabras.forEach(p => {
+        if (!p) return;
+        let desde = 0, pos;
+        while ((pos = norm.indexOf(p, desde)) !== -1) {
+          rangos.push([mapa[pos], mapa[pos + p.length - 1] + 1]);
+          desde = pos + p.length;
+        }
+      });
+      if (rangos.length === 0) return;
+      rangos.sort((a, b) => a[0] - b[0]);
+      const fusion = [rangos[0].slice()];
+      for (let k = 1; k < rangos.length; k++) {
+        const u = fusion[fusion.length - 1];
+        if (rangos[k][0] <= u[1]) u[1] = Math.max(u[1], rangos[k][1]); else fusion.push(rangos[k].slice());
+      }
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      fusion.forEach(([a, b]) => {
+        if (a > cursor) frag.appendChild(document.createTextNode(original.slice(cursor, a)));
+        const m = document.createElement("mark");
+        m.className = "coincidencia-busqueda";
+        m.textContent = original.slice(a, b);
+        frag.appendChild(m);
+        cursor = b;
+      });
+      if (cursor < original.length) frag.appendChild(document.createTextNode(original.slice(cursor)));
+      nodo.parentNode.replaceChild(frag, nodo);
+    });
+  });
+}
 let contadorBusquedaMusica = 0;
 async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-busqueda-musica") {
   const contenedor = document.getElementById(idContenedor);
   const inicioBusqueda = document.getElementById("busqueda-inicial-musica");
   if (inicioBusqueda) inicioBusqueda.classList.add("oculto");
-  contenedor.innerHTML = '<div class="estado-vacio-musica">Buscando…</div>';
+  contenedor.innerHTML = '<div class="buscando-musica"><span class="spinner-busq"></span>Buscando…</div>';
   const miBusqueda = ++contadorBusquedaMusica;
+  document.querySelectorAll(".buscador").forEach(b => b.classList.add("buscando"));
   const frase = claveBusqueda(texto);
   const palabras = frase ? frase.split(" ") : [];
   const f = filtrosBusqueda;
@@ -4632,25 +5252,58 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
   };
   const baseItem = (x) => f.en === "artista" ? clavesDe(x).art : clavesDe(x).tit;
   try {
-    const [albumes, canciones, mapaFotos] = await Promise.all([
+    const necesitaCanciones = f.tipo === "todo" || f.tipo === "canciones";
+    const cancionesYaListas = !!(cachePorMezclarTodo && !cancionesIncompletas);
+    const [albumes, mapaFotos] = await Promise.all([
       obtenerTodosLosAlbumes(),
-      obtenerTodasLasCanciones(),
       obtenerMapaArtistasFotos().catch(() => new Map()),
     ]);
     if (miBusqueda !== contadorBusquedaMusica) return; // llegó una búsqueda más nueva
-    const albumesCoincidentes = (f.tipo === "todo" || f.tipo === "albumes")
+    const pintarResultados = (canciones, cargandoCanciones) => {
+    const albumesCoincidentes0 = (f.tipo === "todo" || f.tipo === "albumes")
       ? ordenar(albumes.filter(a => coincide(a, false) && filtrosOk(a.artista, a.anio)), a => a.titulo || "", a => a.anio, baseItem) : [];
-    const cancionesCoincidentes = (f.tipo === "todo" || f.tipo === "canciones")
+    const cancionesCoincidentes0 = (f.tipo === "todo" || f.tipo === "canciones")
       ? ordenar(canciones.filter(c => coincide(c, true) && filtrosOk(c.artista, c.anio)), c => c.titulo || "", c => c.anio, baseItem) : [];
-    const artistasCoincidentes = (f.tipo === "todo" || f.tipo === "artistas") && f.en !== "titulo"
+    const alfa = (arr, nom) => (!frase && f.orden === "relevancia") ? arr.slice().sort((x, y) => String(nom(x)).localeCompare(String(nom(y)), "es")) : arr;
+    const artistasCoincidentes0 = (f.tipo === "todo" || f.tipo === "artistas") && f.en !== "titulo"
       ? ordenar(agruparAlbumesPorArtista(albumes.filter(a => filtrosOk(a.artista, a.anio)))
           .filter(a => { const n = claveBusqueda(a.nombre); return palabras.every(p => n.includes(p)); }),
           a => a.nombre || "", a => Math.max(0, ...a.albumes.map(x => x.anio || 0)), a => claveBusqueda(a.nombre)) : [];
+    const artistasCoincidentes = alfa(artistasCoincidentes0, a => a.nombre || "");
+    const albumesCoincidentes = (!frase && f.orden === "relevancia")
+      ? albumesCoincidentes0.slice().sort((x, y) => (y.anio || 0) - (x.anio || 0) || String(x.titulo).localeCompare(String(y.titulo), "es")) : albumesCoincidentes0;
+    const cancionesCoincidentes = alfa(cancionesCoincidentes0, c => c.titulo || "");
 
     contenedor.innerHTML = "";
-    if (albumesCoincidentes.length === 0 && cancionesCoincidentes.length === 0 && artistasCoincidentes.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">No se encontraron resultados.</div>';
+    if (albumesCoincidentes.length === 0 && cancionesCoincidentes.length === 0 && artistasCoincidentes.length === 0 && cargandoCanciones) {
+      contenedor.innerHTML = '<div class="buscando-musica"><span class="spinner-busq"></span>Buscando en las canciones…</div>';
       return;
+    }
+    if (albumesCoincidentes.length === 0 && cancionesCoincidentes.length === 0 && artistasCoincidentes.length === 0) {
+      const hayAjustes = hayFiltrosActivos() || f.en !== "todo";
+      contenedor.innerHTML =
+        `<div class="sin-resultados-busqueda">` +
+        `<div class="sin-resultados-icono"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6M8.5 11h5"/></svg></div>` +
+        `<div class="sin-resultados-titulo">Nada por aquí${texto ? ` para “${escaparHtml(texto)}”` : ""}</div>` +
+        `<div class="sin-resultados-ayuda">Revisa la ortografía o prueba con menos palabras${hayAjustes ? ", o quita algún filtro" : ""}.</div>` +
+        (hayAjustes ? `<button type="button" data-reset-filtros>Quitar filtros</button>` : "") +
+        `</div>`;
+      const btnReset = contenedor.querySelector("[data-reset-filtros]");
+      if (btnReset) btnReset.addEventListener("click", () => { Object.assign(filtrosBusqueda, FILTROS_POR_DEFECTO); alCambiarFiltro(); });
+      return;
+    }
+    {
+      const total = artistasCoincidentes.length + albumesCoincidentes.length + cancionesCoincidentes.length;
+      const partes = [];
+      if (artistasCoincidentes.length) partes.push(`${artistasCoincidentes.length} artista${artistasCoincidentes.length === 1 ? "" : "s"}`);
+      if (albumesCoincidentes.length) partes.push(`${albumesCoincidentes.length} álbum${albumesCoincidentes.length === 1 ? "" : "es"}`);
+      if (cancionesCoincidentes.length) partes.push(`${cancionesCoincidentes.length} canci${cancionesCoincidentes.length === 1 ? "ón" : "ones"}`);
+      const resumen = document.createElement("div");
+      resumen.className = "resumen-busqueda";
+      resumen.innerHTML = `<strong>${total}</strong> resultado${total === 1 ? "" : "s"}` +
+        (texto ? ` para <em>“${escaparHtml(texto)}”</em>` : "") +
+        (partes.length > 1 ? ` · ${partes.join(" · ")}` : "");
+      contenedor.appendChild(resumen);
     }
     if (cancionesIncompletas) {
       const aviso = document.createElement("div");
@@ -4672,6 +5325,7 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
       const avanzar = () => {
         const hastaN = Math.min(total, mostrados + (mostrados === 0 ? inicial : paso));
         pintar(mostrados, hastaN);
+        resaltarCoincidencias(cuerpo, palabras);
         mostrados = hastaN;
         const quedan = total - mostrados;
         boton.classList.toggle("oculto", quedan <= 0);
@@ -4686,10 +5340,10 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
 
     if (artistasCoincidentes.length > 0) {
       const cuerpo = document.createElement("div");
-      cuerpo.style.cssText = "display:flex;flex-direction:column;gap:8px";
-      montarSeccion("Artistas", artistasCoincidentes.length, cuerpo, f.tipo === "artistas" ? 30 : 6, 30, (d, h) => {
+      cuerpo.className = "grid-artistas grid-artistas-resultado";
+      montarSeccion("Artistas", artistasCoincidentes.length, cuerpo, f.tipo === "artistas" ? 30 : 8, 30, (d, h) => {
         artistasCoincidentes.slice(d, h).forEach(({ nombre, albumes: albumesDelArtista }) => {
-          cuerpo.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos, "item-artista fila-artista-resultado"));
+          cuerpo.appendChild(crearItemArtista(nombre, albumesDelArtista, mapaFotos));
         });
       });
     }
@@ -4700,6 +5354,12 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
         pintarGridAlbumes(albumesCoincidentes.slice(0, h), cuerpo);
       });
     }
+    if (cargandoCanciones) {
+      const aviso = document.createElement("div");
+      aviso.className = "buscando-musica";
+      aviso.innerHTML = '<span class="spinner-busq"></span>Buscando también en las canciones…';
+      contenedor.appendChild(aviso);
+    }
     if (cancionesCoincidentes.length > 0) {
       const cuerpo = document.createElement("div");
       cuerpo.style.cssText = "display:flex;flex-direction:column;gap:8px";
@@ -4707,26 +5367,33 @@ async function mostrarBusquedaGlobalMusica(texto, idContenedor = "resultados-bus
         for (let i = d; i < h; i++) cuerpo.appendChild(crearFilaCancion(cancionesCoincidentes[i], cancionesCoincidentes, i));
       });
     }
+    };
+    if (necesitaCanciones && !cancionesYaListas) {
+      pintarResultados([], true); // álbumes y artistas ya, sin esperar a las canciones
+      const canciones = await obtenerTodasLasCanciones();
+      if (miBusqueda !== contadorBusquedaMusica) return;
+      pintarResultados(canciones, false);
+    } else {
+      pintarResultados(necesitaCanciones ? await obtenerTodasLasCanciones() : [], false);
+    }
   } catch (e) {
     if (miBusqueda === contadorBusquedaMusica) contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
+  } finally {
+    if (miBusqueda === contadorBusquedaMusica) document.querySelectorAll(".buscador").forEach(b => b.classList.remove("buscando"));
   }
 }
 
-document.getElementById("buscador-albumes").addEventListener("input", (e) => {
-  clearTimeout(temporizadorBusquedaAlbumes);
-  const valor = e.target.value;
-  temporizadorBusquedaAlbumes = setTimeout(() => cargarAlbumes(valor), 350);
-});
+document.getElementById("btn-ir-buscar").addEventListener("click", () => cambiarTabMusica("busqueda"));
 
-let temporizadorBusquedaGlobal = null;
+let temporizadorBusquedaGlobal = null, temporizadorGuardarReciente = null;
 document.getElementById("buscador-global-musica").addEventListener("input", (e) => {
   clearTimeout(temporizadorBusquedaGlobal);
+  clearTimeout(temporizadorGuardarReciente);
   const valor = e.target.value.trim();
   if (!valor && !hayFiltrosActivos()) { mostrarInicioBusqueda(); return; }
-  temporizadorBusquedaGlobal = setTimeout(() => {
-    mostrarBusquedaGlobalMusica(valor, "resultados-busqueda-global");
-    if (valor) guardarBusquedaReciente(valor);
-  }, 350);
+  temporizadorBusquedaGlobal = setTimeout(() => mostrarBusquedaGlobalMusica(valor, "resultados-busqueda-global"), 260);
+  // solo se guarda en "recientes" si la persona se detiene (o pulsa Enter), no en cada letra
+  if (valor) temporizadorGuardarReciente = setTimeout(() => guardarBusquedaReciente(valor), 1600);
 });
 
 async function abrirAlbum(albumId) {
@@ -4743,6 +5410,9 @@ async function abrirAlbum(albumId) {
     const discoHtml = cdUrl
       ? `<div class="cd-disco-mini cd-disco-personalizado" style="background-image:url('${cdUrl}')"></div>`
       : `<div class="cd-disco-mini"></div>`;
+    playlistAbierta = null;
+    delete document.getElementById("cabecera-album-detalle").dataset.playlistId;
+    document.getElementById("cabecera-album-detalle").classList.remove("cab-playlist");
     document.getElementById("cabecera-album-detalle").innerHTML = `
       ${portadaHtml}
       <div class="caja-cd-mini caja-cd-mini-detalle">
@@ -4751,7 +5421,14 @@ async function abrirAlbum(albumId) {
       <div id="info-album-detalle">
         <div class="album-titulo">${escaparHtml(album.titulo)}</div>
         <div class="album-artista">${escaparHtml(album.artista)}${album.anio ? " · " + album.anio : ""}</div>
+        <div class="acciones-cabecera-playlist">
+          <button type="button" class="btn-agregar-album">＋ Agregar álbum a playlist</button>
+        </div>
       </div>`;
+    document.querySelector("#cabecera-album-detalle .btn-agregar-album").addEventListener("click", () => {
+      const ids = (estadoOrdenAlbum && estadoOrdenAlbum.albumId === album.id ? estadoOrdenAlbum.cola : canciones).map(c => c.id);
+      abrirMenuAgregarPlaylist(destinoDeAlbum(album.id, album.titulo, async () => ids));
+    });
     const cola = canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: album.titulo, artista: album.artista, portadaUrl, albumId: album.id, claveCd: album.clave_cd }));
     estadoOrdenAlbum = { albumId: album.id, cola, temporizador: null };
     pintarCancionesAlbumDetalle();
@@ -4849,6 +5526,8 @@ function crearFilaCancion(cancion, cola, indice, opciones = {}) {
   const btnInfo = document.createElement("button");
   btnInfo.className = "info-cancion";
   btnInfo.innerHTML = `<div class="titulo-fila-cancion">${escaparHtml(cancion.titulo)}</div><div class="subtitulo-fila-cancion">${escaparHtml(cancion.artista)} · ${escaparHtml(cancion.albumTitulo)}</div>`;
+  // mantener presionado (o clic derecho) sobre la canción: elegir playlist
+  activarMantenerPresionado(btnInfo, () => abrirMenuAgregarPlaylist(destinoDeCancion(cancion)));
   btnInfo.addEventListener("click", () => reproducirDeCola(cola, indice));
   fila.appendChild(btnInfo);
 
@@ -4865,7 +5544,7 @@ function crearFilaCancion(cancion, cola, indice, opciones = {}) {
     btnSecundario.addEventListener("click", (ev) => { ev.stopPropagation(); opciones.onQuitar(cancion.id); });
   } else {
     btnSecundario.textContent = "+";
-    btnSecundario.addEventListener("click", (ev) => { ev.stopPropagation(); abrirMenuAgregarPlaylist(cancion.id); });
+    btnSecundario.addEventListener("click", (ev) => { ev.stopPropagation(); abrirMenuAgregarPlaylist(destinoDeCancion(cancion)); });
   }
   fila.appendChild(btnSecundario);
 
@@ -4952,7 +5631,7 @@ function pintarCarrusel(idContenedor, canciones, mensajeVacio) {
 
 async function cargarUnCarruselInicio(idContenedor, ruta, mensajeVacio) {
   const contenedor = document.getElementById(idContenedor);
-  contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
+  contenedor.innerHTML = esqueletoCarrusel(false);
   try {
     const datos = await apiMusica(ruta);
     pintarCarrusel(idContenedor, mapearFilasApiACanciones(datos.canciones), mensajeVacio);
@@ -4961,12 +5640,106 @@ async function cargarUnCarruselInicio(idContenedor, ruta, mensajeVacio) {
   }
 }
 
-function cargarInicio() {
-  cargarUnCarruselInicio("carrusel-populares", "/api/populares?limite=20", "Todavía no hay reproducciones registradas.");
-  cargarUnCarruselInicio("carrusel-recientes", "/api/mis/recientes?limite=20", "Todavía no escuchaste nada.");
-  cargarUnCarruselInicio("carrusel-mas-escuchados", "/api/mis/mas-escuchados?limite=20", "Todavía no hay suficientes escuchas.");
-  cargarUnCarruselInicio("carrusel-recomendado", "/api/mis/recomendado?limite=20", "Escuchá algo para recibir recomendaciones.");
+// ---- carruseles de ÁLBUMES (con caja de CD) armados a partir de filas de canciones ----
+function esqueletoCarrusel(conCd) {
+  return Array.from({ length: 5 }, () =>
+    `<div class="esqueleto-tarjeta${conCd ? " esqueleto-cd" : ""}"><div class="esqueleto-img"></div><div class="esqueleto-linea"></div><div class="esqueleto-linea corta"></div></div>`
+  ).join("");
 }
+// De una lista de canciones (ya ordenada) saca los álbumes distintos, respetando ese orden.
+function albumesDistintosDeFilas(filas, maximo = 14) {
+  const vistos = new Set(), albumes = [];
+  (filas || []).forEach(f => {
+    if (f.album_id == null || vistos.has(f.album_id)) return;
+    vistos.add(f.album_id);
+    albumes.push({ id: f.album_id, titulo: f.album_titulo, artista: f.artista, clave_portada: f.clave_portada, clave_cd: f.clave_cd, verificarCd: true });
+  });
+  return albumes.slice(0, maximo);
+}
+function pintarCarruselAlbumes(idContenedor, albumes, mensajeVacio) {
+  const contenedor = document.getElementById(idContenedor);
+  contenedor.innerHTML = "";
+  if (!albumes || albumes.length === 0) {
+    contenedor.innerHTML = `<div class="estado-vacio-musica">${mensajeVacio}</div>`;
+    return;
+  }
+  albumes.forEach((album, i) => contenedor.appendChild(crearItemAlbumCd(album, i)));
+}
+function mostrarErrorCarruseles(ids, e) {
+  ids.forEach(id => { document.getElementById(id).innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`; });
+}
+
+async function cargarRecomendadoAlbumes() {
+  const id = "carrusel-recomendado";
+  document.getElementById(id).innerHTML = esqueletoCarrusel(true);
+  try {
+    // se piden más canciones de las que se muestran porque varias comparten álbum
+    const datos = await apiMusica("/api/mis/recomendado?limite=60");
+    pintarCarruselAlbumes(id, albumesDistintosDeFilas(datos.canciones), "Escuchá algo para recibir recomendaciones.");
+  } catch (e) { mostrarErrorCarruseles([id], e); }
+}
+
+async function cargarRecientesInicio() {
+  const idAlb = "carrusel-recientes-albumes", idCan = "carrusel-recientes";
+  document.getElementById(idAlb).innerHTML = esqueletoCarrusel(true);
+  document.getElementById(idCan).innerHTML = esqueletoCarrusel(false);
+  try {
+    // una sola consulta alimenta las dos secciones: álbumes por un lado, canciones por otro
+    const datos = await apiMusica("/api/mis/recientes?limite=60");
+    const filas = datos.canciones || [];
+    pintarCarruselAlbumes(idAlb, albumesDistintosDeFilas(filas), "Todavía no escuchaste ningún álbum.");
+    pintarCarrusel(idCan, mapearFilasApiACanciones(filas.slice(0, 20)), "Todavía no escuchaste nada.");
+  } catch (e) { mostrarErrorCarruseles([idAlb, idCan], e); }
+}
+
+function actualizarSaludoInicio() {
+  const h = new Date().getHours();
+  const saludo = h < 6 ? "Buenas noches" : h < 13 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
+  const nombre = (sesionMusica && sesionMusica.nombreUsuario) ? `, ${sesionMusica.nombreUsuario}` : "";
+  document.getElementById("hero-saludo").textContent = `${saludo}${nombre}`;
+}
+
+function cargarInicio() {
+  actualizarSaludoInicio();
+  cargarRecomendadoAlbumes();
+  cargarRecientesInicio();
+  cargarUnCarruselInicio("carrusel-populares", "/api/populares?limite=20", "Todavía no hay reproducciones registradas.");
+  cargarUnCarruselInicio("carrusel-mas-escuchados", "/api/mis/mas-escuchados?limite=20", "Todavía no hay suficientes escuchas.");
+}
+
+// ---- arrastrar carruseles con el mouse (en pantallas táctiles ya se desliza con el dedo) ----
+(function habilitarArrastreCarruseles() {
+  let el = null, inicioX = 0, scrollInicial = 0, arrastrando = false, huboArrastre = false;
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    el = e.target.closest(".carrusel-musica");
+    if (!el) return;
+    inicioX = e.clientX; scrollInicial = el.scrollLeft; arrastrando = false; huboArrastre = false;
+  });
+  document.addEventListener("pointermove", (e) => {
+    if (!el) return;
+    const dx = e.clientX - inicioX;
+    if (!arrastrando) {
+      if (Math.abs(dx) < 6) return;
+      arrastrando = true; huboArrastre = true;
+      el.classList.add("arrastrando");
+      try { el.setPointerCapture(e.pointerId); } catch {}
+    }
+    el.scrollLeft = scrollInicial - dx;
+  });
+  const soltar = () => {
+    if (el) el.classList.remove("arrastrando");
+    el = null; arrastrando = false;
+  };
+  document.addEventListener("pointerup", soltar);
+  document.addEventListener("pointercancel", soltar);
+  // si se arrastró, el "click" que sigue al soltar no debe abrir el álbum/canción donde cayó el mouse
+  document.addEventListener("click", (e) => {
+    if (huboArrastre) { e.stopPropagation(); e.preventDefault(); huboArrastre = false; }
+  }, true);
+  // evita que el navegador arrastre la imagen "fantasma" de las portadas
+  document.addEventListener("dragstart", (e) => { if (e.target.closest && e.target.closest(".carrusel-musica")) e.preventDefault(); });
+})();
 
 // ---- registro de reproducciones (para populares / recientes / más escuchados / recomendado) ----
 let temporizadorRegistrarReproduccion = null;
@@ -4992,6 +5765,7 @@ async function obtenerTodasLasCanciones() {
   // rechazaba parte de las peticiones y esas canciones se perdían en silencio (y quedaban
   // fuera de la búsqueda hasta recargar). Ahora se piden de a 8 con reintentos, y los que
   // sigan fallando se vuelven a intentar la próxima vez en vez de darse por perdidos.
+  if (cancionesPorAlbum.size === 0) hidratarIndiceCanciones();
   const faltan = albumes.filter(a => !cancionesPorAlbum.has(a.id));
   let siguiente = 0;
   const trabajador = async () => {
@@ -5008,8 +5782,9 @@ async function obtenerTodasLasCanciones() {
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(8, faltan.length) }, trabajador));
+  await Promise.all(Array.from({ length: Math.min(12, faltan.length) }, trabajador));
   cancionesIncompletas = albumes.some(a => !cancionesPorAlbum.has(a.id));
+  if (faltan.length > 0 && !cancionesIncompletas) guardarIndiceCanciones();
   const todas = [];
   albumes.forEach(album => {
     const lista = cancionesPorAlbum.get(album.id);
@@ -5068,10 +5843,211 @@ document.getElementById("btn-mezclar-todo").addEventListener("click", async () =
 // Una playlist puede tener varios miembros: todos pueden agregar/quitar canciones;
 // solo la persona que la creó (o un admin) puede invitar/expulsar gente y borrarla.
 function textoSubPlaylist(pl) {
-  if (pl.esPropia === false) return `De ${pl.propietario || "otro usuario"}`;
-  const n = Number(pl.miembros || 0);
-  return n > 0 ? `Compartida con ${n} ${n === 1 ? "persona" : "personas"}` : "";
+  const partes = [];
+  if (typeof pl.canciones === "number") partes.push(pl.canciones === 1 ? "1 canción" : `${pl.canciones} canciones`);
+  if (pl.esPropia === false) partes.push(`De ${pl.propietario || "otro usuario"}`);
+  else {
+    const n = Number(pl.miembros || 0);
+    if (n > 0) partes.push(`Compartida con ${n} ${n === 1 ? "persona" : "personas"}`);
+  }
+  return partes.join(" · ");
 }
+
+
+
+// =========================================================================
+// BLOQUE FALTANTE: fotos de playlists + utilidades de playlist
+// Pegar en el <script> de musica.html, justo ANTES de la línea:
+//     let ultimoIndicePlaylist = 0;
+// =========================================================================
+
+// playlist abierta en la vista de detalle: { id, nombre, compartida, cola, pl }
+let playlistAbierta = null;
+
+// cargarPlaylists() la reasigna cuando arma el carrusel; mientras tanto no hace nada
+let pintarFotosPlaylistEnCarrusel = () => {};
+
+// ---- aviso flotante (toast) ----
+function avisoPlaylist(texto) {
+  const el = document.createElement("div");
+  el.className = "aviso-flotante-playlist";
+  el.textContent = texto;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add("sale"), 2600);
+  setTimeout(() => el.remove(), 3100);
+}
+
+// ---- fotos de playlist: guarda las claves y arma las URLs ----
+const FotosPlaylist = {
+  datos: new Map(), // id -> { portada: clave|null, cd: clave|null }
+  fijar(p) {
+    if (!p || p.id == null) return;
+    this.datos.set(p.id, { portada: p.clavePortada || null, cd: p.claveCd || null });
+  },
+  poner(id, tipo, clave) {
+    const actual = this.datos.get(id) || { portada: null, cd: null };
+    actual[tipo] = clave || null;
+    this.datos.set(id, actual);
+  },
+  url(id, tipo) {
+    const d = this.datos.get(id);
+    const clave = d && d[tipo];
+    if (!clave) return null;
+    // ?v=<clave> para que el navegador refresque la imagen cuando se cambia
+    return `${ajustes.apiMusicaUrl}/api/playlist-foto/${id}/${tipo}?v=${encodeURIComponent(clave)}`;
+  },
+};
+
+// ---- convierte la respuesta de /canciones de una playlist en una cola reproducible ----
+function colaDePlaylist(datos) {
+  return (datos.canciones || []).map(c => ({
+    id: c.id,
+    titulo: c.titulo,
+    albumTitulo: c.album_titulo,
+    artista: c.artista,
+    portadaUrl: c.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${c.album_id}` : null,
+    albumId: c.album_id,
+  }));
+}
+
+// ---- reproducir una playlist directamente desde el carrusel ----
+async function reproducirPlaylistPorId(playlistId) {
+  try {
+    const datos = await apiMusica(`/api/mis/playlists/${playlistId}/canciones`);
+    const cola = colaDePlaylist(datos);
+    if (cola.length === 0) { avisoPlaylist("Esta playlist está vacía"); return; }
+    reproducirDeCola(cola, 0);
+  } catch (e) {
+    avisoPlaylist(e.message);
+  }
+}
+
+// ---- menú de fotos de la playlist (portada del estuche y foto del CD) ----
+let playlistFotosActual = null; // { id, nombre }
+const menuFotosPlaylist = document.getElementById("menu-fotos-playlist");
+const vistaFotoPortada = document.getElementById("vista-foto-portada");
+const vistaFotoCd = document.getElementById("vista-foto-cd");
+const inputFotoPortada = document.getElementById("input-foto-portada");
+const inputFotoCd = document.getElementById("input-foto-cd");
+const botonesFotos = [
+  document.getElementById("btn-elegir-foto-portada"),
+  document.getElementById("btn-quitar-foto-portada"),
+  document.getElementById("btn-elegir-foto-cd"),
+  document.getElementById("btn-quitar-foto-cd"),
+];
+
+function pintarMenuFotos() {
+  if (!playlistFotosActual) return;
+  const id = playlistFotosActual.id;
+  const portada = FotosPlaylist.url(id, "portada");
+  const cd = FotosPlaylist.url(id, "cd");
+  vistaFotoPortada.style.backgroundImage = portada ? `url('${portada}')` : "";
+  vistaFotoPortada.textContent = portada ? "" : "♪";
+  vistaFotoCd.style.backgroundImage = cd ? `url('${cd}')` : "";
+  vistaFotoCd.textContent = cd ? "" : "💿";
+  document.getElementById("btn-quitar-foto-portada").disabled = !portada;
+  document.getElementById("btn-quitar-foto-cd").disabled = !cd;
+}
+
+function abrirMenuFotos(pl) {
+  playlistFotosActual = { id: pl.id, nombre: pl.nombre };
+  document.getElementById("titulo-fotos-playlist").textContent = `Fotos · ${pl.nombre}`;
+  pintarMenuFotos();
+  menuFotosPlaylist.classList.remove("oculto");
+}
+
+// recorta al centro (cuadrado) y reduce a JPEG para no subir fotos pesadas
+function redimensionarFotoPlaylist(archivo, lado = 512) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("No se pudo leer la imagen."));
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = lado;
+        canvas.height = lado;
+        const ctx = canvas.getContext("2d");
+        const escala = Math.max(lado / img.width, lado / img.height);
+        const w = img.width * escala, h = img.height * escala;
+        ctx.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("No se pudo procesar la imagen."))),
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
+
+function refrescarVistasDePlaylist(id) {
+  pintarMenuFotos();
+  pintarFotosPlaylistEnCarrusel(id);
+  if (playlistAbierta && playlistAbierta.id === id) pintarCabeceraPlaylist();
+}
+
+async function subirFotoPlaylist(tipo, archivo) {
+  if (!playlistFotosActual || !archivo) return;
+  const id = playlistFotosActual.id;
+  botonesFotos.forEach(b => { b.disabled = true; });
+  try {
+    const blob = await redimensionarFotoPlaylist(archivo);
+    const datos = await apiMusicaBinario(`/api/mis/playlists/${id}/${tipo}`, blob, "image/jpeg");
+    FotosPlaylist.poner(id, tipo, datos.clave);
+    avisoPlaylist("Foto guardada");
+  } catch (e) {
+    avisoPlaylist(e.message);
+  } finally {
+    botonesFotos.forEach(b => { b.disabled = false; });
+    refrescarVistasDePlaylist(id);
+  }
+}
+
+async function quitarFotoPlaylist(tipo) {
+  if (!playlistFotosActual) return;
+  const id = playlistFotosActual.id;
+  botonesFotos.forEach(b => { b.disabled = true; });
+  try {
+    await apiMusica(`/api/mis/playlists/${id}/${tipo}`, { method: "DELETE" });
+    FotosPlaylist.poner(id, tipo, null);
+  } catch (e) {
+    avisoPlaylist(e.message);
+  } finally {
+    botonesFotos.forEach(b => { b.disabled = false; });
+    refrescarVistasDePlaylist(id);
+  }
+}
+
+document.getElementById("btn-elegir-foto-portada").addEventListener("click", () => inputFotoPortada.click());
+document.getElementById("btn-elegir-foto-cd").addEventListener("click", () => inputFotoCd.click());
+document.getElementById("btn-quitar-foto-portada").addEventListener("click", () => quitarFotoPlaylist("portada"));
+document.getElementById("btn-quitar-foto-cd").addEventListener("click", () => quitarFotoPlaylist("cd"));
+inputFotoPortada.addEventListener("change", () => {
+  const archivo = inputFotoPortada.files && inputFotoPortada.files[0];
+  inputFotoPortada.value = "";
+  subirFotoPlaylist("portada", archivo);
+});
+inputFotoCd.addEventListener("change", () => {
+  const archivo = inputFotoCd.files && inputFotoCd.files[0];
+  inputFotoCd.value = "";
+  subirFotoPlaylist("cd", archivo);
+});
+document.getElementById("btn-cerrar-fotos-playlist").addEventListener("click", () => {
+  menuFotosPlaylist.classList.add("oculto");
+  playlistFotosActual = null;
+});
+
+
+
+
+
+
+
+let ultimoIndicePlaylist = 0; // CD que quedó al centro del carrusel (se conserva al recargar)
 async function cargarPlaylists() {
   const contenedor = document.getElementById("lista-mis-playlists");
   contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
@@ -5079,83 +6055,314 @@ async function cargarPlaylists() {
     const datos = await apiMusica("/api/mis/playlists");
     contenedor.innerHTML = "";
     if (datos.playlists.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no tenés playlists. Creá una o pedile a alguien que te invite a la suya.</div>';
+      contenedor.innerHTML = '<div class="vacio-playlists"><div class="vacio-playlists-icono">💿</div><strong>Todavía no tenés playlists</strong><span>Creá una arriba o pedile a alguien que te invite a la suya.</span></div>';
       return;
     }
-    datos.playlists.forEach(pl => {
+    // carrusel 3D horizontal: cada playlist es un CD en su estuche y se desliza hacia los costados
+    const lista = datos.playlists;
+    lista.forEach(p => FotosPlaylist.fijar(p));
+    const carrusel = document.createElement("div");
+    carrusel.className = "carrusel-cds";
+    carrusel.tabIndex = 0;
+    carrusel.setAttribute("role", "group");
+    carrusel.setAttribute("aria-label", "Tus playlists");
+    carrusel.innerHTML = `
+      <div class="carrusel-escena"></div>
+      <button type="button" class="carrusel-flecha izq" aria-label="Playlist anterior">‹</button>
+      <button type="button" class="carrusel-flecha der" aria-label="Playlist siguiente">›</button>
+      <div class="carrusel-pie" aria-live="polite">
+        <div class="carrusel-titulo"></div>
+        <div class="carrusel-sub"></div>
+        <div class="carrusel-principal"><button type="button" class="carrusel-play" aria-label="Reproducir playlist">▶ Reproducir</button><button type="button" class="carrusel-abrir">Abrir</button></div>
+        <div class="carrusel-acciones"><span class="carrusel-btns"></span></div>
+        <div class="carrusel-puntos"></div>
+        <div class="carrusel-contador"></div>
+      </div>`;
+    const escena = carrusel.querySelector(".carrusel-escena");
+    const flechaIzq = carrusel.querySelector(".carrusel-flecha.izq");
+    const flechaDer = carrusel.querySelector(".carrusel-flecha.der");
+    const tituloEl = carrusel.querySelector(".carrusel-titulo");
+    const subEl = carrusel.querySelector(".carrusel-sub");
+    const btnsEl = carrusel.querySelector(".carrusel-btns");
+    const contadorEl = carrusel.querySelector(".carrusel-contador");
+    const puntosEl = carrusel.querySelector(".carrusel-puntos");
+    const playEl = carrusel.querySelector(".carrusel-play");
+    const colorDe = (texto) => { let h = 0; for (const c of String(texto)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+
+    const pintarFotosSlot = (slot, id) => {
+      const portada = FotosPlaylist.url(id, "portada"), cd = FotosPlaylist.url(id, "cd");
+      const cont = slot.querySelector(".cd-pl-portada");
+      let img = cont.querySelector(".cd-pl-foto");
+      if (portada) {
+        if (!img) { img = document.createElement("img"); img.className = "cd-pl-foto"; img.alt = ""; img.draggable = false; cont.insertBefore(img, cont.firstChild); }
+        img.src = portada; cont.classList.add("con-foto");
+      } else { if (img) img.remove(); cont.classList.remove("con-foto"); }
+      const disco = slot.querySelector(".cd-pl-disco");
+      if (cd) { disco.classList.add("cd-pl-disco-foto"); disco.style.backgroundImage = `url('${cd}')`; }
+      else { disco.classList.remove("cd-pl-disco-foto"); disco.style.backgroundImage = ""; }
+    };
+    const destino = Math.min(Math.max(ultimoIndicePlaylist, 0), lista.length - 1);
+    let pos = destino;        // posición continua (permite arrastrar "entre" dos CDs)
+    let activo = destino;     // CD que está al centro
+    let arrastro = false;
+
+    const slots = lista.map((pl, indice) => {
+      const h = colorDe(pl.nombre);
+      const compartidaSlot = pl.esPropia === false || Number(pl.miembros || 0) > 0;
+      const insignias = (compartidaSlot ? '<span title="Compartida">👥</span>' : "") + (typeof pl.canciones === "number" ? `<span>♫ ${pl.canciones}</span>` : "");
+      const slot = document.createElement("div");
+      slot.className = "cd-slot";
+      slot.setAttribute("role", "button");
+      slot.setAttribute("aria-label", `Playlist ${pl.nombre}`);
+      slot.style.setProperty("--h", h);
+      slot.style.setProperty("--h2", (h + 55) % 360);
+      slot.innerHTML = `
+        <div class="cd-pl-disco"></div>
+        <div class="cd-pl-caja">
+          <div class="cd-pl-portada"><span class="cd-pl-nota">♪</span></div>
+          <div class="cd-pl-fondo-nombre"></div>
+          <div class="cd-pl-brillo"></div>
+          <div class="cd-pl-insignias">${insignias}</div>
+          <div class="cd-marco-overlay"></div>
+          <div class="cd-pl-atenua"></div>
+          <div class="cd-pl-nombre">${escaparHtml(pl.nombre)}</div>
+        </div>`;
+      slot.addEventListener("click", () => {
+        if (arrastro) return;
+        if (indice === activo) abrirPlaylist(pl.id, pl.nombre, pl);
+        else ir(indice);
+      });
+      escena.appendChild(slot);
+      pintarFotosSlot(slot, pl.id);
+      return slot;
+    });
+    pintarFotosPlaylistEnCarrusel = (id) => { const i = lista.findIndex(p => p.id === id); if (i >= 0) pintarFotosSlot(slots[i], id); };
+
+    const anchoPaso = () => (slots[0] && slots[0].offsetWidth ? slots[0].offsetWidth : 200) * 0.62;
+
+    function pintarPie() {
+      const pl = lista[activo];
+      if (!pl) return;
       const esPropia = pl.esPropia !== false;
       const compartida = !esPropia || Number(pl.miembros || 0) > 0;
-      const fila = document.createElement("div");
-      fila.className = "item-playlist";
-
-      const btnAbrir = document.createElement("button");
-      btnAbrir.className = "info-cancion";
-      btnAbrir.innerHTML = `${escaparHtml(pl.nombre)}${compartida ? '<span class="insignia-compartida">👥 Compartida</span>' : ""}`
-        + (textoSubPlaylist(pl) ? `<span class="sub-playlist">${escaparHtml(textoSubPlaylist(pl))}</span>` : "");
-      btnAbrir.addEventListener("click", () => abrirPlaylist(pl.id, pl.nombre));
-      fila.appendChild(btnAbrir);
-
-      // Compartir / ver miembros (todos pueden verlos; solo el dueño invita)
-      const btnMiembros = document.createElement("button");
-      btnMiembros.className = "btn-icono";
-      btnMiembros.title = esPropia ? "Compartir" : "Ver miembros";
-      btnMiembros.textContent = "👥";
-      btnMiembros.addEventListener("click", () => abrirMenuMiembros(pl, esPropia));
-      fila.appendChild(btnMiembros);
-
+      tituloEl.textContent = pl.nombre;
+      subEl.textContent = (compartida ? "👥 " : "") + (textoSubPlaylist(pl) || "Playlist");
+      contadorEl.textContent = lista.length > 12 ? `${activo + 1} de ${lista.length}` : "";
+      playEl.disabled = pl.canciones === 0;
+      playEl.title = pl.canciones === 0 ? "Esta playlist está vacía" : "Reproducir";
+      btnsEl.innerHTML = "";
+      const crearBtn = (txt, titulo, fn) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "cd-pl-btn"; b.textContent = txt; b.title = titulo; b.setAttribute("aria-label", titulo);
+        b.addEventListener("click", (ev) => { ev.stopPropagation(); fn(); });
+        btnsEl.appendChild(b);
+      };
+      crearBtn("📷", "Fotos de la playlist", () => abrirMenuFotos(pl));
+      crearBtn("👥", esPropia ? "Compartir" : "Ver miembros", () => abrirMenuMiembros(pl, esPropia));
       if (esPropia) {
-        const btnBorrar = document.createElement("button");
-        btnBorrar.className = "btn-icono";
-        btnBorrar.textContent = "🗑";
-        btnBorrar.addEventListener("click", async () => {
+        crearBtn("🗑", "Borrar playlist", async () => {
           const aviso = Number(pl.miembros || 0) > 0 ? " Se borrará también para las personas con las que la compartiste." : "";
           if (!confirm(`¿Borrar la playlist "${pl.nombre}"?${aviso}`)) return;
           try { await apiMusica(`/api/mis/playlists/${pl.id}`, { method: "DELETE" }); cargarPlaylists(); }
           catch (e) { alert(e.message); }
         });
-        fila.appendChild(btnBorrar);
       } else {
-        const btnSalir = document.createElement("button");
-        btnSalir.className = "btn-texto";
-        btnSalir.textContent = "Salir";
-        btnSalir.addEventListener("click", async () => {
+        crearBtn("↩", "Salir de la playlist", async () => {
           if (!confirm(`¿Salir de la playlist "${pl.nombre}"?`)) return;
           try { await apiMusica(`/api/mis/playlists/${pl.id}/miembros/yo`, { method: "DELETE" }); cargarPlaylists(); }
           catch (e) { alert(e.message); }
         });
-        fila.appendChild(btnSalir);
       }
-      contenedor.appendChild(fila);
+    }
+
+    function render() {
+      slots.forEach((slot, i) => {
+        const o = i - pos, ao = Math.abs(o), signo = o < 0 ? -1 : 1;
+        const x = signo * (ao <= 1 ? ao * 62 : 62 + (ao - 1) * 30);                    // % del ancho del CD
+        const z = 46 * (1 - Math.min(ao, 1)) - Math.min(ao, 3) * 70;                   // el central se acerca, los demás se alejan
+        const giro = -signo * Math.min(ao, 1) * 48;                                    // los costados miran hacia el centro
+        slot.style.transform = `translateX(${x}%) translateZ(${z}px) rotateY(${giro}deg)`;
+        slot.style.setProperty("--at", (Math.min(ao, 2) * 0.24).toFixed(3));
+        const lejos = ao > 3.2;
+        slot.style.opacity = lejos ? "0" : "1";
+        slot.style.pointerEvents = lejos ? "none" : "auto";
+        const esActivo = i === activo;
+        slot.classList.toggle("activo", esActivo);
+        slot.setAttribute("aria-current", esActivo ? "true" : "false");
+      });
+      puntosEl.querySelectorAll(".carrusel-punto").forEach((pt, i) => pt.classList.toggle("activo", i === activo));
+      flechaIzq.disabled = activo <= 0;
+      flechaDer.disabled = activo >= lista.length - 1;
+    }
+
+    if (lista.length > 1 && lista.length <= 12) {
+      lista.forEach((pl, i) => {
+        const pt = document.createElement("button");
+        pt.type = "button"; pt.className = "carrusel-punto"; pt.setAttribute("aria-label", `Ir a ${pl.nombre}`);
+        pt.addEventListener("click", () => ir(i));
+        puntosEl.appendChild(pt);
+      });
+    }
+    const acotar = (v) => Math.min(Math.max(v, -0.25), lista.length - 0.75);
+    function ir(indice) {
+      pos = Math.min(Math.max(indice, 0), lista.length - 1);
+      const cambio = Math.round(pos) !== activo;
+      activo = Math.round(pos);
+      ultimoIndicePlaylist = activo;
+      render();
+      if (cambio || !tituloEl.textContent) pintarPie();
+    }
+    function moverA(valor) { // durante el arrastre
+      pos = acotar(valor);
+      const nuevo = Math.min(Math.max(Math.round(pos), 0), lista.length - 1);
+      const cambio = nuevo !== activo;
+      activo = nuevo;
+      ultimoIndicePlaylist = activo;
+      render();
+      if (cambio) pintarPie();
+    }
+
+    // arrastrar / deslizar con el dedo o el mouse
+    let ini = null;
+    escena.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      ini = { id: e.pointerId, x: e.clientX, pos, movio: false, ultX: e.clientX, ultT: performance.now(), vel: 0 };
     });
+    escena.addEventListener("pointermove", (e) => {
+      if (!ini || e.pointerId !== ini.id) return;
+      const dx = e.clientX - ini.x;
+      if (!ini.movio) {
+        if (Math.abs(dx) < 8) return;
+        ini.movio = true;
+        escena.classList.add("arrastrando");
+        try { escena.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      const ahora = performance.now();
+      ini.vel = (e.clientX - ini.ultX) / Math.max(1, ahora - ini.ultT);
+      ini.ultX = e.clientX; ini.ultT = ahora;
+      moverA(ini.pos - dx / anchoPaso());
+    });
+    const soltar = (e) => {
+      if (!ini || e.pointerId !== ini.id) return;
+      const eraArrastre = ini.movio;
+      const vel = ini.vel;
+      ini = null;
+      escena.classList.remove("arrastrando");
+      if (!eraArrastre) return;
+      arrastro = true;
+      setTimeout(() => { arrastro = false; }, 60);
+      ir(Math.round(pos - (vel * 160) / anchoPaso()));
+    };
+    escena.addEventListener("pointerup", soltar);
+    escena.addEventListener("pointercancel", soltar);
+
+    // rueda horizontal del mouse / trackpad (la vertical sigue haciendo scroll de la página)
+    let ultimaRueda = 0;
+    escena.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 6) return;
+      e.preventDefault();
+      const t = performance.now();
+      if (t - ultimaRueda < 260) return;
+      ultimaRueda = t;
+      ir(activo + (e.deltaX > 0 ? 1 : -1));
+    }, { passive: false });
+
+    flechaIzq.addEventListener("click", () => ir(activo - 1));
+    flechaDer.addEventListener("click", () => ir(activo + 1));
+    carrusel.querySelector(".carrusel-play").addEventListener("click", () => {
+      const pl = lista[activo];
+      if (pl) reproducirPlaylistPorId(pl.id);
+    });
+    carrusel.querySelector(".carrusel-abrir").addEventListener("click", () => {
+      const pl = lista[activo];
+      if (pl) abrirPlaylist(pl.id, pl.nombre, pl);
+    });
+    carrusel.addEventListener("keydown", (e) => {
+      if (e.target.closest("button")) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); ir(activo - 1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); ir(activo + 1); }
+      else if (e.key === "Home") { e.preventDefault(); ir(0); }
+      else if (e.key === "End") { e.preventDefault(); ir(lista.length - 1); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); const pl = lista[activo]; if (pl) abrirPlaylist(pl.id, pl.nombre, pl); }
+    });
+
+    // entrada: los CDs llegan deslizándose desde la derecha hasta quedar centrados
+    pos = destino + Math.min(2.4, Math.max(lista.length - 1, 1));
+    render();
+    pintarPie();
+    contenedor.appendChild(carrusel);
+    requestAnimationFrame(() => requestAnimationFrame(() => ir(destino)));
   } catch (e) {
     contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
 }
-document.getElementById("btn-crear-playlist").addEventListener("click", async () => {
+(function () {
   const input = document.getElementById("input-nueva-playlist");
-  const nombre = input.value.trim();
-  if (!nombre) return;
-  try {
-    await apiMusica("/api/mis/playlists", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre })
-    });
-    input.value = "";
-    cargarPlaylists();
-  } catch (e) {
-    alert(e.message);
+  const btn = document.getElementById("btn-crear-playlist");
+  async function crear() {
+    const nombre = input.value.trim();
+    if (!nombre || btn.disabled) return;
+    btn.disabled = true;
+    try {
+      await apiMusica("/api/mis/playlists", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre })
+      });
+      input.value = "";
+      ultimoIndicePlaylist = 0; // la más nueva queda primera: el carrusel va directo a ella
+      await cargarPlaylists();
+      avisoPlaylist(`Playlist "${nombre}" creada`);
+    } catch (e) {
+      avisoPlaylist(e.message);
+    } finally {
+      btn.disabled = !input.value.trim();
+    }
   }
-});
-async function abrirPlaylist(playlistId, nombre) {
+  input.addEventListener("input", () => { btn.disabled = !input.value.trim(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); crear(); } });
+  btn.addEventListener("click", crear);
+})();
+function pintarCabeceraPlaylist() {
+  const p = playlistAbierta;
+  if (!p) return;
+  const portada = FotosPlaylist.url(p.id, "portada"), cd = FotosPlaylist.url(p.id, "cd");
+  const portadaHtml = portada ? `<img class="portada-album" src="${portada}" alt="" />` : `<div class="portada-album vacia">♪</div>`;
+  const discoHtml = cd
+    ? `<div class="cd-disco-mini cd-disco-personalizado" style="background-image:url('${cd}')"></div>`
+    : `<div class="cd-disco-mini"></div>`;
+  const n = p.cola.length;
+  const meta = ["Playlist", n === 1 ? "1 canción" : `${n} canciones`];
+  if (p.compartida) meta.push("compartida");
+  const cab = document.getElementById("cabecera-album-detalle");
+  cab.dataset.playlistId = String(p.id);
+  cab.classList.add("cab-playlist");
+  cab.innerHTML = `
+    ${portadaHtml}
+    <div class="caja-cd-mini caja-cd-mini-detalle"><div class="cd-interior-mini">${discoHtml}</div></div>
+    <div id="info-album-detalle">
+      <div class="album-titulo">${escaparHtml(p.nombre)}</div>
+      <div class="album-artista">${escaparHtml(meta.join(" · "))}</div>
+      <div class="acciones-cabecera-playlist">
+        <button type="button" class="btn-play-playlist" aria-label="Reproducir playlist"${n === 0 ? " disabled" : ""}>▶ Reproducir</button>
+        <button type="button" class="btn-foto-playlist" aria-label="Fotos de la playlist" title="Fotos de la playlist">📷</button>
+        ${p.pl ? '<button type="button" class="btn-foto-playlist btn-miembros-playlist" aria-label="Compartir o ver miembros" title="Compartir / miembros">👥</button>' : ""}
+      </div>
+    </div>`;
+  cab.querySelector(".btn-play-playlist").addEventListener("click", () => { if (n) reproducirDeCola(p.cola, 0); });
+  cab.querySelector(".btn-foto-playlist").addEventListener("click", () => abrirMenuFotos({ id: p.id, nombre: p.nombre }));
+  const bm = cab.querySelector(".btn-miembros-playlist");
+  if (bm) bm.addEventListener("click", () => abrirMenuMiembros(p.pl, p.pl.esPropia !== false));
+}
+async function abrirPlaylist(playlistId, nombre, pl) {
   try {
     const datos = await apiMusica(`/api/mis/playlists/${playlistId}/canciones`);
-    const cola = datos.canciones.map(c => ({ id: c.id, titulo: c.titulo, albumTitulo: c.album_titulo, artista: c.artista, portadaUrl: c.clave_portada ? `${ajustes.apiMusicaUrl}/api/portada/${c.album_id}` : null, albumId: c.album_id, claveCd: c.clave_cd }));
-    document.getElementById("cabecera-album-detalle").innerHTML = `
-      <div class="portada-album vacia">♪</div>
-      <div id="info-album-detalle"><div class="album-titulo">${escaparHtml(nombre)}</div><div class="album-artista">Playlist${datos.compartida ? " compartida" : ""}</div></div>`;
+    const cola = colaDePlaylist(datos);
+    FotosPlaylist.fijar({ id: playlistId, clavePortada: datos.clavePortada, claveCd: datos.claveCd });
+    playlistAbierta = { id: playlistId, nombre, compartida: !!datos.compartida, cola, pl: pl || (playlistAbierta && playlistAbierta.id === playlistId ? playlistAbierta.pl : null) };
+    pintarCabeceraPlaylist();
     const contenedor = document.getElementById("canciones-album-detalle");
     contenedor.innerHTML = "";
     if (cola.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">Esta playlist está vacía. Agregá canciones desde Álbumes o Favoritos con el botón "+".</div>';
+      contenedor.innerHTML = '<div class="vacio-playlists"><div class="vacio-playlists-icono">🎵</div><strong>Esta playlist está vacía</strong><span>Agregá canciones desde Álbumes o Favoritos con el botón "+".</span></div>';
     } else {
       cola.forEach((cancion, indice) => {
         contenedor.appendChild(crearFilaCancion(cancion, cola, indice, {
@@ -5174,39 +6381,240 @@ async function abrirPlaylist(playlistId, nombre) {
     alert(e.message);
   }
 }
-async function abrirMenuAgregarPlaylist(cancionId) {
+
+// ===== agregar canciones o álbumes completos a una playlist =====
+// destino: id de canción (número) o un objeto:
+//   { ids: [..], etiqueta, albumId?, albumTitulo? }            → una o varias canciones
+//   { soloAlbum: true, albumId, etiqueta, obtenerIds: async }  → un álbum completo
+let ultimaPlaylistAgregar = Almacen.cargar("gyan_ultima_playlist_agregar", null); // { id, nombre }
+let tokenMenuAgregar = 0;
+
+async function idsDeAlbum(albumId) {
+  const datos = await apiMusica(`/api/albumes/${albumId}`);
+  return (datos.canciones || []).map(c => c.id);
+}
+function destinoDeCancion(c) {
+  return { ids: [c.id], etiqueta: `${c.titulo} — ${c.artista}`, albumId: c.albumId || null, albumTitulo: c.albumTitulo || "" };
+}
+function destinoDeAlbum(albumId, titulo, obtenerIds) {
+  return { soloAlbum: true, albumId, albumTitulo: titulo, etiqueta: `Álbum completo: ${titulo}`, obtenerIds: obtenerIds || (() => idsDeAlbum(albumId)) };
+}
+function cancionActualDeCola() {
+  return indiceColaActual >= 0 ? (colaReproduccion[indiceColaActual] || null) : null;
+}
+// agrega de a una (en orden); devuelve cuántas entraron y cuántas no
+async function agregarIdsAPlaylist(playlistId, ids) {
+  let ok = 0, fallidas = 0, primerError = "";
+  for (const cancionId of ids) {
+    try {
+      await apiMusica(`/api/mis/playlists/${playlistId}/canciones`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cancionId })
+      });
+      ok++;
+    } catch (e) {
+      fallidas++;
+      if (!primerError) primerError = e.message;
+    }
+  }
+  return { ok, fallidas, primerError };
+}
+function recordarUltimaPlaylist(pl) {
+  ultimaPlaylistAgregar = { id: pl.id, nombre: pl.nombre };
+  Almacen.guardar("gyan_ultima_playlist_agregar", ultimaPlaylistAgregar);
+  if (playlistAbierta && String(playlistAbierta.id) === String(pl.id)) abrirPlaylist(pl.id, pl.nombre);
+}
+function textoResultadoAgregar(r, total, nombre) {
+  if (r.ok === 0) return r.primerError || "No se pudo agregar";
+  if (total === 1) return `Agregada a "${nombre}"`;
+  if (r.fallidas === 0) return `${r.ok} canciones agregadas a "${nombre}"`;
+  return `${r.ok} agregadas a "${nombre}" · ${r.fallidas} no se pudieron agregar (quizá ya estaban)`;
+}
+
+async function abrirMenuAgregarPlaylist(destinoCrudo) {
+  const destino = (destinoCrudo && typeof destinoCrudo === "object") ? destinoCrudo : { ids: [Number(destinoCrudo)] };
+  const token = ++tokenMenuAgregar;
   const menu = document.getElementById("menu-agregar-playlist");
   const contenedor = document.getElementById("opciones-agregar-playlist");
+  const elDestino = document.getElementById("destino-agregar-playlist");
+  const elModo = document.getElementById("modo-agregar-playlist");
+
+  let modo = "cancion"; // "cancion" | "album" (solo cuando se parte de una canción con álbum conocido)
+  let idsAlbum = null;
+  const puedeElegirModo = !destino.soloAlbum && !!destino.albumId && (destino.ids || []).length === 1;
+
+  function pintarEncabezado() {
+    elDestino.textContent = (!destino.soloAlbum && modo === "album")
+      ? `Álbum completo: ${destino.albumTitulo || "este álbum"}`
+      : (destino.etiqueta || "");
+    elModo.classList.toggle("oculto", !puedeElegirModo);
+    if (!puedeElegirModo) return;
+    elModo.innerHTML = "";
+    [["cancion", "Solo esta canción"], ["album", "Álbum completo"]].forEach(([clave, texto]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = texto;
+      b.className = modo === clave ? "activo" : "";
+      b.addEventListener("click", () => { modo = clave; pintarEncabezado(); });
+      elModo.appendChild(b);
+    });
+  }
+  async function resolverIds() {
+    if (destino.soloAlbum) {
+      if (!idsAlbum) idsAlbum = await destino.obtenerIds();
+      return idsAlbum;
+    }
+    if (modo === "album") {
+      if (!idsAlbum) idsAlbum = await idsDeAlbum(destino.albumId);
+      return idsAlbum;
+    }
+    return destino.ids || [];
+  }
+  async function elegir(pl) {
+    try {
+      const ids = await resolverIds();
+      if (ids.length === 0) { avisoPlaylist("No hay canciones para agregar"); return; }
+      menu.classList.add("oculto");
+      if (ids.length > 1) avisoPlaylist(`Agregando ${ids.length} canciones…`);
+      const r = await agregarIdsAPlaylist(pl.id, ids);
+      if (r.ok > 0) recordarUltimaPlaylist(pl);
+      avisoPlaylist(textoResultadoAgregar(r, ids.length, pl.nombre));
+    } catch (e) { alert(e.message); }
+  }
+
+  pintarEncabezado();
   contenedor.innerHTML = '<div class="estado-vacio-musica">Cargando…</div>';
   menu.classList.remove("oculto");
   try {
     const datos = await apiMusica("/api/mis/playlists");
+    if (token !== tokenMenuAgregar) return; // se abrió otro menú mientras cargaba
     contenedor.innerHTML = "";
-    if (datos.playlists.length === 0) {
-      contenedor.innerHTML = '<div class="estado-vacio-musica">Todavía no tenés playlists. Creá una en la pestaña Playlists.</div>';
-      return;
+    const lista = datos.playlists || [];
+
+    // atajo: la última playlist donde se agregó algo
+    const ultima = ultimaPlaylistAgregar && lista.find(p => String(p.id) === String(ultimaPlaylistAgregar.id));
+    if (ultima) {
+      const rapida = document.createElement("button");
+      rapida.className = "opcion-playlist-menu rapida";
+      rapida.textContent = `⚡ Última usada: ${ultima.nombre}`;
+      rapida.addEventListener("click", () => elegir(ultima));
+      contenedor.appendChild(rapida);
     }
-    datos.playlists.forEach(pl => {
+
+    // crear una playlist nueva directamente desde acá
+    const btnNueva = document.createElement("button");
+    btnNueva.className = "opcion-playlist-menu nueva";
+    btnNueva.textContent = "＋ Nueva playlist";
+    contenedor.appendChild(btnNueva);
+    btnNueva.addEventListener("click", () => {
+      const fila = document.createElement("div");
+      fila.className = "fila-nueva-en-menu";
+      fila.innerHTML = '<input type="text" maxlength="60" placeholder="Nombre de la playlist…" autocomplete="off" /><button type="button" class="nueva-playlist-btn" disabled>Crear y agregar</button>';
+      btnNueva.replaceWith(fila);
+      const input = fila.querySelector("input"), btnCrear = fila.querySelector("button");
+      input.focus();
+      input.addEventListener("input", () => { btnCrear.disabled = !input.value.trim(); });
+      async function crearYAgregar() {
+        const nombre = input.value.trim();
+        if (!nombre || btnCrear.disabled) return;
+        btnCrear.disabled = true;
+        try {
+          const resp = await apiMusica("/api/mis/playlists", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre })
+          });
+          let id = resp && (resp.id ?? resp.playlistId ?? (resp.playlist && resp.playlist.id));
+          if (id == null) {
+            const d2 = await apiMusica("/api/mis/playlists");
+            const nueva = (d2.playlists || []).filter(p => p.nombre === nombre).sort((a, b) => b.id - a.id)[0];
+            id = nueva && nueva.id;
+          }
+          if (id == null) throw new Error("No se pudo encontrar la playlist nueva");
+          await elegir({ id, nombre });
+        } catch (e) {
+          alert(e.message);
+          btnCrear.disabled = !input.value.trim();
+        }
+      }
+      input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); crearYAgregar(); } });
+      btnCrear.addEventListener("click", crearYAgregar);
+    });
+
+    if (lista.length === 0) {
+      const vacio = document.createElement("div");
+      vacio.className = "estado-vacio-musica";
+      vacio.textContent = "Todavía no tenés playlists. Creá una con el botón de arriba.";
+      contenedor.appendChild(vacio);
+    }
+    lista.forEach(pl => {
       const btn = document.createElement("button");
       btn.className = "opcion-playlist-menu";
       const compartida = pl.esPropia === false || Number(pl.miembros || 0) > 0;
       btn.textContent = pl.nombre + (compartida ? "  👥" : "");
-      btn.addEventListener("click", async () => {
-        try {
-          await apiMusica(`/api/mis/playlists/${pl.id}/canciones`, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cancionId })
-          });
-          menu.classList.add("oculto");
-        } catch (e) { alert(e.message); }
-      });
+      btn.addEventListener("click", () => elegir(pl));
       contenedor.appendChild(btn);
     });
   } catch (e) {
+    if (token !== tokenMenuAgregar) return;
     contenedor.innerHTML = `<div class="estado-vacio-musica">${escaparHtml(e.message)}</div>`;
   }
 }
 document.getElementById("btn-cerrar-menu-playlist").addEventListener("click", () => {
   document.getElementById("menu-agregar-playlist").classList.add("oculto");
+});
+document.getElementById("menu-agregar-playlist").addEventListener("click", (ev) => {
+  if (ev.target.id === "menu-agregar-playlist") ev.currentTarget.classList.add("oculto");
+});
+
+// ---- mantener presionado / clic derecho sobre un elemento ----
+function activarMantenerPresionado(el, alMantener, ms = 600) {
+  let temporizador = null, largo = false, x0 = 0, y0 = 0;
+  const cancelar = () => { clearTimeout(temporizador); temporizador = null; };
+  // este listener va primero: si fue una pulsación larga, se anula el clic que viene después
+  el.addEventListener("click", (ev) => { if (largo) { largo = false; ev.stopImmediatePropagation(); ev.preventDefault(); } });
+  el.addEventListener("pointerdown", (ev) => {
+    largo = false; x0 = ev.clientX; y0 = ev.clientY; cancelar();
+    temporizador = setTimeout(() => { largo = true; temporizador = null; if (navigator.vibrate) navigator.vibrate(15); alMantener(); }, ms);
+  });
+  el.addEventListener("pointermove", (ev) => { if (temporizador && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) cancelar(); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(n => el.addEventListener(n, cancelar));
+  el.addEventListener("contextmenu", (ev) => { ev.preventDefault(); cancelar(); largo = false; alMantener(); });
+}
+
+// ---- formas de agregar lo que está sonando ----
+// 1) botón ＋ del reproductor  2) mantener presionada la portada  3) doble toque en la portada
+// (a la última playlist usada)  4) teclado: P = elegir playlist, Shift+P = última usada
+function abrirMenuAgregarActual() {
+  const c = cancionActualDeCola();
+  if (!c) { avisoPlaylist("Primero reproducí una canción"); return; }
+  abrirMenuAgregarPlaylist(destinoDeCancion(c));
+}
+async function agregarActualAUltimaPlaylist() {
+  const c = cancionActualDeCola();
+  if (!c) { avisoPlaylist("Primero reproducí una canción"); return; }
+  if (!ultimaPlaylistAgregar) { abrirMenuAgregarActual(); return; }
+  const pl = ultimaPlaylistAgregar;
+  const r = await agregarIdsAPlaylist(pl.id, [c.id]);
+  if (r.ok > 0) recordarUltimaPlaylist(pl);
+  avisoPlaylist(textoResultadoAgregar(r, 1, pl.nombre));
+}
+document.getElementById("btn-agregar-actual").addEventListener("click", abrirMenuAgregarActual);
+(function () {
+  const portada = document.getElementById("portada-reproductor-actual-contenedor");
+  let ultimoToque = 0;
+  activarMantenerPresionado(portada, abrirMenuAgregarActual);
+  portada.addEventListener("click", () => {
+    const ahora = Date.now();
+    if (ahora - ultimoToque < 350) { ultimoToque = 0; agregarActualAUltimaPlaylist(); }
+    else ultimoToque = ahora;
+  });
+})();
+document.addEventListener("keydown", (ev) => {
+  if (ev.key.toLowerCase() !== "p" || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const t = ev.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  if (!document.getElementById("menu-agregar-playlist").classList.contains("oculto")) return;
+  if (document.getElementById("contenido-musica").classList.contains("oculto")) return;
+  ev.preventDefault();
+  if (ev.shiftKey) agregarActualAUltimaPlaylist(); else abrirMenuAgregarActual();
 });
 
 // ---- miembros de una playlist ----
@@ -5824,11 +7232,153 @@ function avanzarEnCola(direccion) {
   reproducirIndiceActualDeCola();
 }
 
-function reproducirIndiceActualDeCola() {
+// ===== transición entre canciones: precarga de la siguiente + fundido cruzado =====
+// Dos elementos <audio> se alternan: mientras uno suena, el otro va cargando la
+// canción que viene. Cerca del final la siguiente entra con un fundido (crossfade)
+// y, si no hubo tiempo, igual arranca al instante porque ya estaba cargada.
+const FADE_AUTO = 1.5;   // segundos de fundido al pasar sola a la siguiente
+const FADE_MANUAL = 0.6; // segundos de fundido al tocar "siguiente"/"anterior"
+const SILENCIO = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+const soportaVolumen = (() => {
+  try { const v = audioA.volume; audioA.volume = 0.5; const ok = Math.abs(audioA.volume - 0.5) < 0.01; audioA.volume = v; return ok; }
+  catch { return false; } // p. ej. iPhone: el volumen del elemento es de solo lectura (sin fundido, pero sí sin cortes)
+})();
+let fade = null;               // { viejo, nuevo, t0, dur, timer }
+let audiosDesbloqueados = false;
+let desbloqueoEnCurso = false;
+
+function escucharAudios(tipo, fn) {
+  [audioA, audioB].forEach(el => el.addEventListener(tipo, (ev) => { if (el === audioEl) fn(ev); }));
+}
+function audioSpare() { return audioEl === audioA ? audioB : audioA; }
+function volumenObjetivo() {
+  const v = Number(barraVolumen.value) / 100;
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.7;
+}
+function limpiarElemento(el) {
+  try { el.pause(); } catch {}
+  el.removeAttribute("src");
+  try { el.load(); } catch {}
+  delete el.dataset.id;
+  if (soportaVolumen) el.volume = volumenObjetivo();
+}
+// Safari/iPhone solo deja arrancar un <audio> con un gesto del usuario: se "desbloquea" el
+// segundo elemento la primera vez, justo cuando la persona toca una canción.
+function desbloquearSpare(despues) {
+  if (audiosDesbloqueados) { despues(); return; }
+  audiosDesbloqueados = true;
+  desbloqueoEnCurso = true;
+  const sp = audioSpare();
+  sp.muted = true;
+  sp.src = SILENCIO;
+  const fin = () => { try { sp.pause(); } catch {} sp.muted = false; limpiarElemento(sp); desbloqueoEnCurso = false; despues(); };
+  try { const p = sp.play(); if (p && p.then) p.then(fin, fin); else fin(); } catch { fin(); }
+}
+// qué canción viene sola después de la actual (null si la cola termina)
+function indiceSiguienteAuto() {
+  if (colaReproduccion.length === 0 || indiceColaActual < 0) return null;
+  if (modoRepetir === "una") return { pos: posicionEnOrden, idx: indiceColaActual };
+  let p = posicionEnOrden + 1;
+  if (p >= ordenReproduccion.length) { if (modoRepetir === "todo") p = 0; else return null; }
+  return { pos: p, idx: ordenReproduccion[p] };
+}
+function precargarSiguiente() {
+  if (fade || desbloqueoEnCurso || jyamRol === "invitado") return;
+  const sig = indiceSiguienteAuto();
+  if (!sig) return;
+  const c = colaReproduccion[sig.idx];
+  if (!c) return;
+  const sp = audioSpare();
+  if (sp.dataset.id === String(c.id) && sp.getAttribute("src")) return;
+  try { sp.pause(); } catch {}
+  if (soportaVolumen) sp.volume = volumenObjetivo();
+  sp.src = `${ajustes.apiMusicaUrl}/api/stream/${c.id}`;
+  sp.dataset.id = String(c.id);
+  try { sp.load(); } catch {}
+}
+function pasoFade() {
+  if (!fade) return;
+  const t = Math.min(1, (performance.now() - fade.t0) / fade.dur);
+  const vol = volumenObjetivo();
+  fade.viejo.volume = Math.max(0, Math.min(1, vol * Math.cos(t * Math.PI / 2)));
+  fade.nuevo.volume = Math.max(0, Math.min(1, vol * Math.sin(t * Math.PI / 2)));
+  if (t >= 1) finalizarFade();
+}
+function finalizarFade() {
+  if (!fade) return;
+  const f = fade;
+  fade = null;
+  clearInterval(f.timer);
+  limpiarElemento(f.viejo);
+  if (soportaVolumen) f.nuevo.volume = volumenObjetivo();
+  precargarSiguiente();
+}
+// pasa a "nuevo" (el elemento ya precargado). dur = segundos de fundido (0 = corte limpio)
+function transicionarA(nuevo, dur, url) {
+  const viejo = audioEl;
+  const vol = volumenObjetivo();
+  delete nuevo.dataset.id;
+  audioEl = nuevo; // desde ahora la interfaz sigue a este elemento
+  const conFundido = dur > 0 && soportaVolumen && !viejo.paused && !viejo.ended && !!viejo.getAttribute("src");
+  if (soportaVolumen) nuevo.volume = conFundido ? 0 : vol;
+  try { nuevo.currentTime = 0; } catch {}
+  const intento = nuevo.play();
+  if (intento && intento.catch) {
+    intento.catch(() => {
+      // el navegador no dejó arrancar el segundo elemento: se vuelve al método de siempre
+      if (audioEl !== nuevo) return;
+      if (fade && fade.nuevo === nuevo) { clearInterval(fade.timer); fade = null; }
+      limpiarElemento(nuevo);
+      audioEl = viejo;
+      if (soportaVolumen) viejo.volume = vol;
+      if (viejo.paused) { viejo.src = url; viejo.play().catch(() => {}); }
+    });
+  }
+  if (conFundido) {
+    fade = { viejo, nuevo, t0: performance.now(), dur: dur * 1000, timer: setInterval(pasoFade, 40) };
+  } else {
+    limpiarElemento(viejo);
+  }
+}
+function avanzarAuto() {
+  const sig = indiceSiguienteAuto();
+  if (!sig) return false;
+  posicionEnOrden = sig.pos;
+  indiceColaActual = sig.idx;
+  reproducirIndiceActualDeCola({ fade: FADE_AUTO });
+  return true;
+}
+// cerca del final de la canción, si la siguiente ya está lista, empieza el fundido
+function revisarCrossfade() {
+  if (fade || arrastrandoProgreso || jyamRol === "invitado") return;
+  if (audioEl.paused || audioEl.ended || !soportaVolumen) return;
+  const dur = audioEl.duration;
+  if (!Number.isFinite(dur) || dur < FADE_AUTO * 2.5) return;
+  const restante = dur - audioEl.currentTime;
+  if (restante > FADE_AUTO || restante <= 0.1) return;
+  const sig = indiceSiguienteAuto();
+  if (!sig) return;
+  const c = colaReproduccion[sig.idx];
+  const sp = audioSpare();
+  if (!c || sp.dataset.id !== String(c.id) || sp.readyState < 3) return;
+  avanzarAuto();
+}
+setInterval(revisarCrossfade, 200);
+
+function reproducirIndiceActualDeCola(opciones = {}) {
   if (indiceColaActual < 0 || indiceColaActual >= colaReproduccion.length) return;
   const cancion = colaReproduccion[indiceColaActual];
-  audioEl.src = `${ajustes.apiMusicaUrl}/api/stream/${cancion.id}`;
-  audioEl.play().catch(() => {});
+  const urlCancion = `${ajustes.apiMusicaUrl}/api/stream/${cancion.id}`;
+  const spare = audioSpare();
+  if (spare.dataset.id === String(cancion.id) && spare.getAttribute("src")) {
+    // la canción ya estaba precargada: arranca al instante (con fundido si corresponde)
+    transicionarA(spare, typeof opciones.fade === "number" ? opciones.fade : FADE_MANUAL, urlCancion);
+  } else {
+    finalizarFade();
+    audioEl.volume = volumenObjetivo();
+    audioEl.src = urlCancion;
+    audioEl.play().catch(() => {});
+  }
   sincronizarAnalisis();
   cargarEnvolventeVozParaCancion(cancion.id);
   programarRegistroReproduccion(cancion.id);
@@ -5852,6 +7402,7 @@ function reproducirIndiceActualDeCola() {
   actualizarMediaSession(cancion);
   actualizarCdMiniReproductor(cancion);
   if (jyamRol === "anfitrion") jyamEnviarEstado();
+  desbloquearSpare(precargarSiguiente);
 }
 
 // si el álbum de la canción tiene un CD personalizado subido, se usa esa foto
@@ -5918,6 +7469,7 @@ document.getElementById("btn-aleatorio").addEventListener("click", () => {
   if (colaReproduccion.length > 0) {
     ordenReproduccion = generarOrden(colaReproduccion.length, indiceColaActual);
     posicionEnOrden = ordenReproduccion.indexOf(indiceColaActual);
+    precargarSiguiente();
   }
 });
 document.getElementById("btn-repetir").addEventListener("click", () => {
@@ -5925,6 +7477,7 @@ document.getElementById("btn-repetir").addEventListener("click", () => {
   const btn = document.getElementById("btn-repetir");
   btn.innerHTML = modoRepetir === "una" ? ICONO_REPETIR_UNA : ICONO_REPETIR;
   btn.classList.toggle("activo", modoRepetir !== "no");
+  precargarSiguiente();
 });
 btnFavoritoActual.addEventListener("click", () => {
   if (indiceColaActual < 0) return;
@@ -5934,7 +7487,7 @@ btnFavoritoActual.addEventListener("click", () => {
 
 const cdMiniReproductor = document.getElementById("cd-mini-reproductor");
 
-audioEl.addEventListener("play", () => {
+escucharAudios("play", () => {
   btnPlayPausa.innerHTML = ICONO_PAUSA;
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
   sincronizarAnalisis();
@@ -5946,7 +7499,7 @@ audioEl.addEventListener("play", () => {
   bocaMiniReproductor.classList.remove("pausado");
   if (jyamRol === "anfitrion" && !jyamAplicandoRemoto) jyamEnviarEstado();
 });
-audioEl.addEventListener("pause", () => {
+escucharAudios("pause", () => {
   btnPlayPausa.innerHTML = ICONO_PLAY;
   if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
   sincronizarAnalisis();
@@ -5956,7 +7509,7 @@ audioEl.addEventListener("pause", () => {
   bocaMiniReproductor.classList.add("pausado");
   if (jyamRol === "anfitrion" && !jyamAplicandoRemoto) jyamEnviarEstado();
 });
-audioEl.addEventListener("ended", () => {
+escucharAudios("ended", () => {
   audioAnalisis.pause();
   if (colaReproduccion.length === 0) return;
   if (modoRepetir === "una") { reproducirIndiceActualDeCola(); return; }
@@ -5985,7 +7538,7 @@ async function continuarConCancionAleatoria() {
 function fijarVarProgreso(elemento) {
   elemento.style.setProperty("--progreso", `${elemento.value}%`);
 }
-audioEl.addEventListener("timeupdate", () => {
+escucharAudios("timeupdate", () => {
   if (arrastrandoProgreso || !audioEl.duration) return;
   barraProgreso.value = (audioEl.currentTime / audioEl.duration) * 100;
   fijarVarProgreso(barraProgreso);
@@ -6012,8 +7565,8 @@ barraProgreso.addEventListener("change", () => {
   arrastrandoProgreso = false;
   if (jyamRol === "anfitrion") jyamEnviarEstado();
 });
-barraVolumen.addEventListener("input", () => { audioEl.volume = barraVolumen.value / 100; fijarVarProgreso(barraVolumen); });
-audioEl.volume = 0.7;
+barraVolumen.addEventListener("input", () => { if (!fade) audioEl.volume = volumenObjetivo(); fijarVarProgreso(barraVolumen); });
+audioA.volume = 0.7; audioB.volume = 0.7;
 fijarVarProgreso(barraProgreso);
 fijarVarProgreso(barraVolumen);
 
