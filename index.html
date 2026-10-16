@@ -7813,6 +7813,7 @@ function reproducirIndiceActualDeCola(opciones = {}) {
   sincronizarAnalisis();
   cargarEnvolventeVozParaCancion(cancion.id);
   programarRegistroReproduccion(cancion.id);
+  setTimeout(ahoraEnviar, 600); // avisa al ESP32 que cambió la canción
   document.getElementById("titulo-cancion").textContent = cancion.titulo;
   document.getElementById("subtitulo-cancion").textContent = `${cancion.artista} · ${cancion.albumTitulo}`;
   document.querySelectorAll(".fila-cancion").forEach(f => {
@@ -9066,6 +9067,27 @@ window.addEventListener("load", () => {
     setTimeout(() => agregarLinea("sistema", "Toca ⚙ arriba a la derecha para poner tu API Key de OpenRouter antes de escribirle a Gyan."), 800);
   }
 });
+
+
+// ---- "Ahora suena": avisa al servidor qué estás escuchando (lo lee el ESP32 con GET /api/mis/ahora) ----
+async function ahoraEnviar() {
+  const c = cancionActualDeCola();
+  if (!c || !sesionMusica || !sesionMusica.token) return;
+  try {
+    await apiMusica("/api/mis/ahora", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cancionId: c.id,
+        posicion: audioEl.currentTime || 0,
+        duracion: isFinite(audioEl.duration) ? audioEl.duration : 0,
+        pausado: audioEl.paused,
+      }),
+    });
+  } catch { /* sin red o la API aún no tiene la ruta: se reintenta en el próximo aviso */ }
+}
+["play", "playing", "pause", "seeked", "loadedmetadata"].forEach(tipo => escucharAudios(tipo, ahoraEnviar));
+setInterval(() => { if (audioEl && !audioEl.paused) ahoraEnviar(); }, 10000); // latido mientras suena
 
 </script>
 
